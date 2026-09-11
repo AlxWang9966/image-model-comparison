@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import math
 import os
 import re
 import shutil
@@ -26,8 +27,17 @@ MODEL_PROVIDERS = {
     "gpt-image-2": "gpt",
     "gpt-image-2-5": "gpt",
     "flux-1-kontext-pro": "flux",
+    "flux-2-pro": "flux",
+    "flux-2-flex": "flux",
 }
-SIZES = ("1024x1024", "1536x1024", "1024x1536")
+LEGACY_MODEL_IDS = frozenset(("mai-image-2-5", "gpt-image-2", "gpt-image-2-5", "flux-1-kontext-pro"))
+GPT_SIZES = ("1024x1024", "1536x1024", "1024x1536")
+SIZES = (*GPT_SIZES, "2048x2048")
+FLUX_PATHS = {
+    "flux-1-kontext-pro": "/providers/blackforestlabs/v1/flux-kontext-pro",
+    "flux-2-pro": "/providers/blackforestlabs/v1/flux-2-pro",
+    "flux-2-flex": "/providers/blackforestlabs/v1/flux-2-flex",
+}
 QUALITIES = ("low", "medium", "high", "auto")
 MAX_IMAGE_BYTES = 32 * 1024 * 1024
 MAX_RESPONSE_BYTES = 48 * 1024 * 1024
@@ -53,7 +63,7 @@ def text_field(data: dict[str, Any], key: str, maximum: int = 512) -> str:
     return value.strip()
 
 
-def validate_endpoint(endpoint: str, auth_mode: str, provider: str) -> None:
+def validate_service_url(endpoint: str, auth_mode: str, allow_openai: bool = False) -> urllib.parse.SplitResult:
     try:
         parsed = urllib.parse.urlsplit(endpoint)
         port = parsed.port
@@ -70,20 +80,52 @@ def validate_endpoint(endpoint: str, auth_mode: str, provider: str) -> None:
         raise ValidationError("Use an HTTPS endpoint without credentials or a fragment.")
     azure = bool(AZURE_HOST.fullmatch(parsed.hostname.lower()))
     openai = parsed.hostname.lower() == "api.openai.com"
-    if not azure and not (openai and auth_mode == "api_key_env" and provider == "gpt"):
+    if not azure and not (openai and auth_mode == "api_key_env" and allow_openai):
         raise ValidationError(
             "Use an Azure AI endpoint, or api.openai.com with an environment API key. "
             "Azure login tokens are never sent to other hosts."
         )
-    native_flux = provider == "flux" and parsed.path == "/providers/blackforestlabs/v1/flux-kontext-pro"
+    if any(key != "api-version" for key, _ in urllib.parse.parse_qsl(parsed.query)):
+        raise ValidationError("Only api-version is allowed in the endpoint query; never put keys there.")
+    return parsed
+
+
+def validate_endpoint(endpoint: str, auth_mode: str, provider: str) -> None:
+    parsed = validate_service_url(endpoint, auth_mode, allow_openai=provider == "gpt")
+    native_flux = provider == "flux" and parsed.path in FLUX_PATHS.values()
     if not parsed.path.endswith("/images/generations") and not native_flux:
-        raise ValidationError("Enter the full synchronous Images API or FLUX Kontext BFL-provider URL.")
+        raise ValidationError("Enter the full synchronous Images API or supported FLUX BFL-provider URL.")
     if provider == "mai" and parsed.path != "/mai/v1/images/generations":
         raise ValidationError("MAI requires /mai/v1/images/generations.")
     if provider != "mai" and "/mai/" in parsed.path:
         raise ValidationError("GPT and FLUX require the Images API, not the MAI API.")
-    if any(key != "api-version" for key, _ in urllib.parse.parse_qsl(parsed.query)):
-        raise ValidationError("Only api-version is allowed in the endpoint query; never put keys there.")
+
+
+def parse_auth(raw: dict[str, Any]) -> tuple[str, str, str]:
+    mode = text_field(raw, "auth_mode")
+    if mode not in ("azure_cli", "api_key_env"):
+        raise ValidationError("auth_mode must be azure_cli or api_key_env.")
+    env_name = text_field(raw, "api_key_env", 128)
+    if env_name and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", env_name):
+        raise ValidationError("api_key_env must be an environment variable NAME, not a secret.")
+    header = text_field(raw, "api_key_header")
+    if header not in ("api-key", "Authorization"):
+        raise ValidationError("api_key_header must be api-key or Authorization.")
+    return mode, env_name, header
+
+
+def configuration_problem(
+    enabled: bool, endpoint: str, deployment: str, auth_mode: str, api_key_env: str,
+) -> str | None:
+    if not endpoint or not deployment:
+        return "Set a real endpoint and deployment before using this slot."
+    if not enabled:
+        return "This service is disabled in settings."
+    if auth_mode == "azure_cli" and not shutil.which("az"):
+        return "Azure CLI is not installed or is not on PATH."
+    if auth_mode == "api_key_env" and (not api_key_env or not os.environ.get(api_key_env, "").strip()):
+        return f"Set the server environment variable {api_key_env or '(not specified)'} and restart."
+    return None
 
 
 @dataclass(frozen=True)
@@ -99,6 +141,9 @@ class ModelConfig:
     version: str
     supported_sizes: tuple[str, ...]
     enabled: bool
+    prompt_policy: str = "original"
+    flux_steps: int | None = None
+    flux_guidance: float | None = None
 
     @classmethod
     def parse(cls, raw: Any) -> ModelConfig:
@@ -107,7 +152,7 @@ class ModelConfig:
         allowed = {
             "id", "name", "provider", "deployment", "endpoint", "auth_mode",
             "api_key_env", "api_key_header", "version", "supported_sizes",
-            "enabled", "configured", "configuration_error",
+            "enabled", "configured", "configuration_error", "prompt_policy", "flux_steps", "flux_guidance",
         }
         if set(raw) - allowed:
             raise ValidationError("Unknown model fields; store only an environment variable name, never a key.")
@@ -119,19 +164,16 @@ class ModelConfig:
         deployment = text_field(raw, "deployment", 128)
         if not name or (deployment and not re.fullmatch(r"[A-Za-z0-9_.-]+", deployment)):
             raise ValidationError("A display name and a valid deployment/model identifier are required.")
-        auth_mode = text_field(raw, "auth_mode")
-        if auth_mode not in ("azure_cli", "api_key_env"):
-            raise ValidationError("auth_mode must be azure_cli or api_key_env.")
-        env_name = text_field(raw, "api_key_env", 128)
-        if env_name and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", env_name):
-            raise ValidationError("api_key_env must be an environment variable NAME, not a secret.")
-        header = text_field(raw, "api_key_header")
-        if header not in ("api-key", "Authorization"):
-            raise ValidationError("api_key_header must be api-key or Authorization.")
+        auth_mode, env_name, header = parse_auth(raw)
         endpoint = text_field(raw, "endpoint", 2048)
         if endpoint:
             validate_endpoint(endpoint, auth_mode, provider)
             path = urllib.parse.urlsplit(endpoint).path
+            if provider == "flux":
+                if path in FLUX_PATHS.values() and path != FLUX_PATHS[identifier]:
+                    raise ValidationError("The BFL path must match the selected FLUX model slot.")
+                if identifier in ("flux-2-pro", "flux-2-flex") and path != FLUX_PATHS[identifier]:
+                    raise ValidationError("FLUX.2 requires its native BFL provider endpoint, not the Images API.")
             match = re.search(r"/deployments/([^/]+)/", path)
             if match and deployment and urllib.parse.unquote(match[1]) != deployment:
                 raise ValidationError("The deployment in the endpoint URL must match the deployment field.")
@@ -146,28 +188,33 @@ class ModelConfig:
             or len(sizes) != len(set(sizes))
         ):
             raise ValidationError("supported_sizes must contain unique supported image sizes.")
-        if provider in ("mai", "flux") and sizes != ["1024x1024"]:
-            raise ValidationError("These MAI/FLUX deployments use the common 1024x1024 size (1 MP limit).")
+        if identifier in ("mai-image-2-5", "flux-1-kontext-pro") and sizes != ["1024x1024"]:
+            raise ValidationError("MAI Image 2.5 and FLUX.1 Kontext use the common 1024x1024 size (1 MP limit).")
+        if provider == "gpt" and any(size not in GPT_SIZES for size in sizes):
+            raise ValidationError("This GPT adapter supports the configured 1024/1536 image sizes.")
         enabled = raw.get("enabled")
         if type(enabled) is not bool:
             raise ValidationError("enabled must be a boolean.")
+        policy = raw.get("prompt_policy", "original")
+        if policy not in ("original", "english"):
+            raise ValidationError("prompt_policy must be original or english.")
+        steps = raw.get("flux_steps", 50 if identifier == "flux-2-flex" else None)
+        guidance = raw.get("flux_guidance", 4.5 if identifier == "flux-2-flex" else None)
+        if identifier == "flux-2-flex":
+            if type(steps) is not int or not 1 <= steps <= 50:
+                raise ValidationError("FLUX.2 Flex steps must be an integer from 1 to 50.")
+            if type(guidance) not in (int, float) or not math.isfinite(guidance) or not 1.5 <= guidance <= 10:
+                raise ValidationError("FLUX.2 Flex guidance must be a finite number from 1.5 to 10.")
+            guidance = float(guidance)
+        elif steps is not None or guidance is not None:
+            raise ValidationError("Steps/guidance controls are exposed only for FLUX.2 Flex.")
         return cls(
             identifier, name, provider, deployment, endpoint, auth_mode, env_name,
-            header, text_field(raw, "version", 80), tuple(sizes), enabled,
+            header, text_field(raw, "version", 80), tuple(sizes), enabled, policy, steps, guidance,
         )
 
     def configuration_error(self) -> str | None:
-        if not self.endpoint or not self.deployment:
-            return "Set a real endpoint and deployment before using this slot."
-        if not self.enabled:
-            return "This model is disabled in settings."
-        if self.auth_mode == "azure_cli" and not shutil.which("az"):
-            return "Azure CLI is not installed or is not on PATH."
-        if self.auth_mode == "api_key_env" and (
-            not self.api_key_env or not os.environ.get(self.api_key_env, "").strip()
-        ):
-            return f"Set the server environment variable {self.api_key_env or '(not specified)'} and restart."
-        return None
+        return configuration_problem(self.enabled, self.endpoint, self.deployment, self.auth_mode, self.api_key_env)
 
     def public(self) -> dict[str, Any]:
         data = asdict(self)
@@ -178,17 +225,81 @@ class ModelConfig:
 
 
 @dataclass(frozen=True)
+class TranslationConfig:
+    enabled: bool = False
+    endpoint: str = ""
+    deployment: str = ""
+    auth_mode: str = "azure_cli"
+    api_key_env: str = ""
+    api_key_header: str = "api-key"
+    timeout_seconds: int = 60
+
+    @classmethod
+    def parse(cls, raw: Any) -> TranslationConfig:
+        if raw is None:
+            return cls()
+        if not isinstance(raw, dict) or set(raw) - {
+            "enabled", "endpoint", "deployment", "auth_mode", "api_key_env",
+            "api_key_header", "timeout_seconds", "configured", "configuration_error",
+        }:
+            raise ValidationError("Invalid translation settings; do not store keys in configuration.")
+        data = {**asdict(cls()), **raw}
+        enabled = data["enabled"]
+        if type(enabled) is not bool:
+            raise ValidationError("Translation enabled must be a boolean.")
+        endpoint = text_field(data, "endpoint", 2048)
+        deployment = text_field(data, "deployment", 128)
+        if deployment and not re.fullmatch(r"[A-Za-z0-9_.-]+", deployment):
+            raise ValidationError("Invalid translation deployment identifier.")
+        mode, env_name, header = parse_auth(data)
+        timeout = data["timeout_seconds"]
+        if type(timeout) is not int or not 10 <= timeout <= 120:
+            raise ValidationError("Translation timeout must be an integer from 10 to 120 seconds.")
+        if endpoint:
+            parsed = validate_service_url(endpoint, mode)
+            if not re.fullmatch(r"/openai/(?:v1|deployments/[^/]+)/chat/completions", parsed.path):
+                raise ValidationError("Translation requires a full Azure OpenAI chat/completions endpoint.")
+            match = re.search(r"/deployments/([^/]+)/", parsed.path)
+            if match and deployment and urllib.parse.unquote(match[1]) != deployment:
+                raise ValidationError("Translation endpoint deployment must match the deployment field.")
+        return cls(enabled, endpoint, deployment, mode, env_name, header, timeout)
+
+    def configuration_error(self) -> str | None:
+        return configuration_problem(self.enabled, self.endpoint, self.deployment, self.auth_mode, self.api_key_env)
+
+    def public(self) -> dict[str, Any]:
+        return {
+            **asdict(self), "configuration_error": self.configuration_error(),
+            "configured": self.configuration_error() is None,
+        }
+
+
+def new_flux_model(identifier: str) -> ModelConfig:
+    if identifier not in ("flux-2-pro", "flux-2-flex"):
+        raise ValidationError("Only missing FLUX.2 slots can be added during migration.")
+    flex = identifier == "flux-2-flex"
+    return ModelConfig(
+        id=identifier, name="FLUX.2 Flex" if flex else "FLUX.2 Pro", provider="flux",
+        deployment="FLUX.2-flex" if flex else "FLUX.2-pro", endpoint="",
+        auth_mode="azure_cli", api_key_env="", api_key_header="Authorization",
+        version="", supported_sizes=SIZES, enabled=False, prompt_policy="original",
+        flux_steps=50 if flex else None, flux_guidance=4.5 if flex else None,
+    )
+
+
+@dataclass(frozen=True)
 class AppConfig:
     subscription_id: str
     resource_group: str
     request_timeout_seconds: int
     models: tuple[ModelConfig, ...]
+    translation: TranslationConfig = TranslationConfig()
 
     @classmethod
     def parse(cls, raw: Any) -> AppConfig:
         if not isinstance(raw, dict):
             raise ValidationError("Configuration must be a JSON object.")
-        if set(raw) - {"subscription_id", "resource_group", "request_timeout_seconds", "models"}:
+        if set(raw) - {"subscription_id", "resource_group", "request_timeout_seconds", "models", "translation"}:
             raise ValidationError("Unknown configuration fields.")
         subscription = text_field(raw, "subscription_id", 36)
         try:
@@ -202,12 +313,14 @@ class AppConfig:
         if type(timeout) is not int or not 30 <= timeout <= 600:
             raise ValidationError("request_timeout_seconds must be an integer from 30 to 600.")
         rows = raw.get("models")
-        if not isinstance(rows, list) or len(rows) != len(MODEL_PROVIDERS):
-            raise ValidationError("Keep all four model slots in configuration.")
+        if not isinstance(rows, list) or not len(LEGACY_MODEL_IDS) <= len(rows) <= len(MODEL_PROVIDERS):
+            raise ValidationError("Keep the existing four slots and up to two FLUX.2 slots.")
         models = tuple(ModelConfig.parse(row) for row in rows)
-        if {model.id for model in models} != set(MODEL_PROVIDERS):
-            raise ValidationError("Model slots must be unique.")
-        return cls(subscription, group, timeout, models)
+        ids = {model.id for model in models}
+        if len(ids) != len(models) or not LEGACY_MODEL_IDS.issubset(ids):
+            raise ValidationError("Model slots must be unique and preserve the four original slots.")
+        models += tuple(new_flux_model(identifier) for identifier in MODEL_PROVIDERS if identifier not in ids)
+        return cls(subscription, group, timeout, models, TranslationConfig.parse(raw.get("translation")))
 
     def public(self) -> dict[str, Any]:
         return {
@@ -215,6 +328,7 @@ class AppConfig:
             "resource_group": self.resource_group,
             "request_timeout_seconds": self.request_timeout_seconds,
             "models": [model.public() for model in self.models],
+            "translation": self.translation.public(),
         }
 
     def persisted(self) -> dict[str, Any]:
@@ -237,7 +351,7 @@ class Credentials:
         self._lock = threading.Lock()
         self._tokens: dict[str, tuple[str, float]] = {}
 
-    def headers(self, model: ModelConfig, subscription: str) -> dict[str, str]:
+    def headers(self, model: ModelConfig | TranslationConfig, subscription: str) -> dict[str, str]:
         if model.auth_mode == "api_key_env":
             value = os.environ.get(model.api_key_env, "").strip()
             if not value:
@@ -310,6 +424,14 @@ def build_request(model: ModelConfig, prompt: str, size: str, quality: str) -> d
     if model.provider == "mai":
         return {"model": model.deployment, "prompt": prompt, "width": width, "height": height}
     if model.provider == "flux" and "/providers/blackforestlabs/" in urllib.parse.urlsplit(model.endpoint).path:
+        if model.id in ("flux-2-pro", "flux-2-flex"):
+            body = {
+                "model": model.deployment, "prompt": prompt, "width": width, "height": height,
+                "num_images": 1, "output_format": "png",
+            }
+            if model.id == "flux-2-flex":
+                body.update(steps=model.flux_steps, guidance=model.flux_guidance)
+            return body
         return {
             "model": model.deployment, "prompt": prompt,
             "aspect_ratio": "1:1", "output_format": "png",

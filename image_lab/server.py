@@ -20,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from . import __version__, providers
+from . import __version__, prompts, providers
 from .archive import ArchiveError, ImageArchive, prompt_topic
 from .locking import AlreadyRunningError, single_instance
 from .providers import AppConfig, Credentials, ModelConfig, ProviderError, ValidationError
@@ -46,21 +46,31 @@ class HttpError(RuntimeError):
 
 def parse_job_input(raw: Any, config: AppConfig) -> tuple[dict[str, Any], list[ModelConfig]]:
     expected = {"prompt", "model_ids", "size", "gpt_quality", "runs", "mode"}
-    if not isinstance(raw, dict) or not expected.issubset(raw) or set(raw) - expected - {"topic"}:
-        raise ValidationError("Supply prompt, model_ids, size, gpt_quality, runs, mode, and optionally topic.")
+    optional = {"topic", "english_prompt", "language_mode"}
+    if not isinstance(raw, dict) or not expected.issubset(raw) or set(raw) - expected - optional:
+        raise ValidationError("Supply the experiment settings, with optional topic, english_prompt, and language_mode.")
     prompt = raw["prompt"]
     if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 4000:
         raise ValidationError("The shared prompt must contain 1 to 4000 characters.")
     topic = raw.get("topic", "")
     if not isinstance(topic, str) or len(topic) > 80:
         raise ValidationError("topic must be a string of at most 80 characters.")
+    english = raw.get("english_prompt", "")
+    if not isinstance(english, str) or len(english) > prompts.MAX_ENGLISH_PROMPT:
+        raise ValidationError(f"english_prompt must be text of at most {prompts.MAX_ENGLISH_PROMPT} characters.")
+    english = english.strip()
+    if english:
+        prompts.validate_english_prompt(english)
+    language_mode = raw.get("language_mode", "model_defaults")
+    if language_mode not in prompts.LANGUAGE_MODES:
+        raise ValidationError("Invalid language_mode.")
     identifiers = raw["model_ids"]
     if (
-        not isinstance(identifiers, list) or not 1 <= len(identifiers) <= 4
+        not isinstance(identifiers, list) or not 1 <= len(identifiers) <= len(providers.MODEL_PROVIDERS)
         or any(not isinstance(identifier, str) for identifier in identifiers)
         or len(set(identifiers)) != len(identifiers)
     ):
-        raise ValidationError("Select 1 to 4 unique models.")
+        raise ValidationError(f"Select 1 to {len(providers.MODEL_PROVIDERS)} unique models.")
     model_map = {model.id: model for model in config.models}
     if any(identifier not in model_map for identifier in identifiers):
         raise ValidationError("An unknown model was selected.")
@@ -79,7 +89,33 @@ def parse_job_input(raw: Any, config: AppConfig) -> tuple[dict[str, Any], list[M
         raise ValidationError("mode must be parallel or sequential.")
     for model in models:
         providers.build_request(model, prompt.strip(), raw["size"], raw["gpt_quality"])
-    return {**raw, "prompt": prompt.strip(), "topic": prompt_topic(prompt, topic)}, models
+    translation_needed = (
+        not english and prompts.needs_english_version(prompt)
+        and any(prompts.uses_english(model, language_mode) for model in models)
+    )
+    if translation_needed:
+        problem = config.translation.configuration_error()
+        if problem:
+            raise ValidationError(
+                "An English counterpart is required. Provide one or configure/enable the Azure translator. " + problem
+            )
+    return {
+        **raw, "prompt": prompt.strip(), "topic": prompt_topic(prompt, topic),
+        "english_prompt": english, "language_mode": language_mode,
+    }, models
+
+
+def planned_sample(model: ModelConfig, number: int, params: dict[str, Any]) -> dict[str, Any]:
+    wants_english = prompts.uses_english(model, params["language_mode"])
+    if wants_english and params["english_prompt"]:
+        text, variant = params["english_prompt"], "provided_english"
+    elif wants_english and prompts.needs_english_version(params["prompt"]):
+        text, variant = "", "pending_english"
+    else:
+        text, variant = params["prompt"], "original"
+    sample = empty_sample(model.id, number, providers.build_request(model, text, params["size"], params["gpt_quality"]))
+    sample.update(original_prompt=params["prompt"], effective_prompt=text or None, prompt_variant=variant)
+    return sample
 
 
 def load_config(root: Path, config_path: Path) -> AppConfig:
@@ -155,6 +191,18 @@ class Application:
                 raise ConflictError("Wait for the current experiment to finish before changing model settings.")
             if isinstance(raw, dict) and "request_timeout_seconds" not in raw:
                 raw = {**raw, "request_timeout_seconds": self.config.request_timeout_seconds}
+            if isinstance(raw, dict) and "translation" not in raw:
+                raw = {**raw, "translation": self.config.translation.public()}
+            if isinstance(raw, dict) and isinstance(raw.get("models"), list):
+                supplied = {
+                    model["id"] for model in raw["models"]
+                    if isinstance(model, dict) and isinstance(model.get("id"), str)
+                }
+                retained = [
+                    model.public() for model in self.config.models
+                    if model.id in ("flux-2-pro", "flux-2-flex") and model.id not in supplied
+                ]
+                raw = {**raw, "models": [*raw["models"], *retained]}
             config = AppConfig.parse(raw)
             write_json_atomic(self.config_path, config.persisted())
             self.config = config
@@ -181,13 +229,11 @@ class Application:
                 "timing_scope": "end_to_end",
                 "cancel_requested": False,
                 "samples": [
-                    empty_sample(
-                        model.id, round_number,
-                        providers.build_request(model, params["prompt"], params["size"], params["gpt_quality"]),
-                    )
+                    planned_sample(model, round_number, params)
                     for round_number in range(1, params["runs"] + 1)
                     for model in models
                 ],
+                "translation": {"status": "not_needed", "elapsed_ms": None, "api_ms": None, "request_attempted": False},
                 "warnings": [],
             }
             self.store.add(job)
@@ -215,15 +261,74 @@ class Application:
                     identifier, sample["id"], status=status, error=message, completed_at=now_iso(),
                 )
 
+    def _prepare_prompts(
+        self, identifier: str, config: AppConfig, models: list[ModelConfig], cancel_event: threading.Event,
+    ) -> None:
+        job = self.store.get(identifier)
+        pending = [sample for sample in job["samples"] if sample.get("prompt_variant") == "pending_english"]
+        if pending and not cancel_event.is_set():
+            self.store.update_job(identifier, translation={
+                "status": "running", "elapsed_ms": None, "api_ms": None, "request_attempted": None,
+            })
+            try:
+                result = prompts.translate(job["prompt"], config.translation, self.credentials, config.subscription_id)
+            except prompts.TranslationError as exc:
+                self.store.update_job(identifier, translation={
+                    "status": "failed", "elapsed_ms": exc.elapsed_ms, "api_ms": None,
+                    "request_attempted": exc.request_attempted, "error": str(exc),
+                })
+                for sample in pending:
+                    self.store.update_sample(
+                        identifier, sample["id"], status="failed", completed_at=now_iso(),
+                        error="English preparation failed before an image request was sent: " + str(exc),
+                    )
+            else:
+                model_map = {model.id: model for model in models}
+                for sample in pending:
+                    self.store.update_sample(
+                        identifier, sample["id"], effective_prompt=result.english_prompt,
+                        prompt_variant="translated_english",
+                        request=providers.build_request(
+                            model_map[sample["model_id"]], result.english_prompt, job["size"], job["gpt_quality"],
+                        ),
+                    )
+                self.store.update_job(identifier, english_prompt=result.english_prompt, translation={
+                    "status": "completed", "elapsed_ms": result.elapsed_ms, "api_ms": result.api_ms,
+                    "request_attempted": True, "usage": result.usage,
+                    "deployment": config.translation.deployment,
+                })
+        current = self.store.get(identifier)
+        effective = {sample["effective_prompt"] for sample in current["samples"] if sample.get("effective_prompt")}
+        warnings = list(current["warnings"])
+        if len(effective) > 1:
+            warnings.append(
+                "This experiment uses different prompt-language variants. Compare the same task, "
+                "not identical prompt strings; original and effective prompts are recorded for every sample."
+            )
+        elif effective and next(iter(effective)) != current["prompt"]:
+            warnings.append("All image models use an English counterpart, not the original prompt string.")
+        if current["translation"]["status"] == "failed":
+            warnings.append(
+                "English preparation failed. Models that require an English counterpart were not called; "
+                "original-language models can still proceed. No untranslated fallback was sent."
+            )
+        self.store.update_job(identifier, warnings=warnings)
+
     def _run_job(
         self, identifier: str, models: list[ModelConfig], config: AppConfig, cancel_event: threading.Event,
     ) -> None:
         try:
             self.store.update_job(identifier, status="preparing")
+            self._prepare_prompts(identifier, config, models, cancel_event)
             ready = []
             for model in models:
                 if cancel_event.is_set():
                     break
+                if not any(
+                    sample["model_id"] == model.id and sample["status"] == "pending"
+                    for sample in self.store.get(identifier)["samples"]
+                ):
+                    continue
                 try:
                     self.credentials.headers(model, config.subscription_id)
                     ready.append(model)
@@ -354,7 +459,8 @@ def export_csv(job: dict[str, Any]) -> bytes:
     output = io.StringIO(newline="")
     fields = [
         "experiment_id", "created_at", "source", "timing_scope", "model", "model_id",
-        "deployment", "model_version", "topic", "prompt", "requested_size", "gpt_quality", "mode",
+        "deployment", "model_version", "topic", "prompt", "original_prompt", "effective_prompt",
+        "prompt_variant", "language_mode", "translation_ms", "requested_size", "gpt_quality", "mode",
         "round", "status", "elapsed_seconds", "api_seconds", "download_seconds", "save_seconds",
         "actual_width", "actual_height", "output_bytes", *RATING_FIELDS, "notes",
         "image_file", "error", "warnings", "request_json", "revised_prompt",
@@ -370,7 +476,13 @@ def export_csv(job: dict[str, Any]) -> bytes:
             "source": job["source"], "timing_scope": job["timing_scope"],
             "model": model["name"], "model_id": model["id"],
             "deployment": model["deployment"], "model_version": model.get("version", ""),
-            "topic": job.get("topic", ""), "prompt": job["prompt"], "requested_size": job["size"],
+            "topic": job.get("topic", ""), "prompt": job["prompt"],
+            "original_prompt": job["prompt"],
+            "effective_prompt": sample.get("effective_prompt", sample.get("request", {}).get("prompt")),
+            "prompt_variant": sample.get("prompt_variant", "original"),
+            "language_mode": job.get("language_mode", "original_all"),
+            "translation_ms": job.get("translation", {}).get("elapsed_ms"),
+            "requested_size": job["size"],
             "gpt_quality": job["gpt_quality"] if model["provider"] == "gpt" else "",
             "mode": job["mode"], "round": sample["round"], "status": sample["status"],
             "actual_width": sample.get("width"), "actual_height": sample.get("height"),
@@ -434,8 +546,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "-1"))
         except ValueError as exc:
             raise HttpError(400, "Invalid Content-Length.") from exc
-        if not 0 <= length <= 65536:
-            raise HttpError(413, "Request body must not exceed 64 KB.")
+        if not 0 <= length <= 131072:
+            raise HttpError(413, "Request body must not exceed 128 KB.")
         self.connection.settimeout(15)
         body = self.rfile.read(length)
         if len(body) != length:

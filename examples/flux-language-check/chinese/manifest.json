@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "experiment_id": "e45b7d7f86d8472199795f12bf0b4d0e",
+  "topic": "flux-language-check-zh",
+  "prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+  "english_prompt": null,
+  "language_mode": "original_all",
+  "translation": {
+    "status": "not_needed",
+    "elapsed_ms": null,
+    "api_ms": null,
+    "request_attempted": false,
+    "usage": null
+  },
+  "created_at": "2026-09-11T05:19:27.068+00:00",
+  "status": "completed",
+  "source": "live",
+  "mode": "parallel",
+  "requested_size": "1024x1024",
+  "gpt_quality": "medium",
+  "timing_scope": "end_to_end",
+  "rounds": 1,
+  "models": [
+    {
+      "id": "flux-1-kontext-pro",
+      "name": "FLUX.1 Kontext Pro",
+      "provider": "flux",
+      "version": "1"
+    },
+    {
+      "id": "flux-2-pro",
+      "name": "FLUX.2 Pro",
+      "provider": "flux",
+      "version": "1"
+    },
+    {
+      "id": "flux-2-flex",
+      "name": "FLUX.2 Flex",
+      "provider": "flux",
+      "version": "1"
+    }
+  ],
+  "sample_count": 3,
+  "image_count": 3,
+  "missing_successful_images": 0,
+  "reviews_included": false,
+  "privacy": "Connection/credential fields and full errors are excluded; manually review images, prompts, topics, and any included human notes before sharing.",
+  "samples": [
+    {
+      "experiment_id": "e45b7d7f86d8472199795f12bf0b4d0e",
+      "topic": "flux-language-check-zh",
+      "prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "original_prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "effective_prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "prompt_variant": "original",
+      "image_request_started": true,
+      "prompt_recorded": true,
+      "model": {
+        "id": "flux-1-kontext-pro",
+        "name": "FLUX.1 Kontext Pro",
+        "provider": "flux",
+        "version": "1"
+      },
+      "round": 1,
+      "status": "success",
+      "created_at": "2026-09-11T05:19:27.068+00:00",
+      "source": "live",
+      "mode": "parallel",
+      "requested_size": "1024x1024",
+      "request_parameters": {
+        "output_format": "png",
+        "aspect_ratio": "1:1"
+      },
+      "timing": {
+        "scope": "end_to_end",
+        "elapsed_ms": 10191.741,
+        "api_ms": 10161.343,
+        "download_ms": 0.0,
+        "save_ms": 11.059
+      },
+      "image": {
+        "status": "available",
+        "file": "flux-1-kontext-pro/round-01_flux-1-kontext-pro_flux-language-chec.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1492992,
+        "sha256": "b78ab6577dda8d99d4f4d5493d390ee1624744775a4532deb9c2cdf76e765138"
+      },
+      "http_error_code": null,
+      "diagnostic_note": null,
+      "human_review": null,
+      "reviews_included": false,
+      "notes_file": "flux-1-kontext-pro/round-01_flux-1-kontext-pro_flux-language-chec.json"
+    },
+    {
+      "experiment_id": "e45b7d7f86d8472199795f12bf0b4d0e",
+      "topic": "flux-language-check-zh",
+      "prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "original_prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "effective_prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "prompt_variant": "original",
+      "image_request_started": true,
+      "prompt_recorded": true,
+      "model": {
+        "id": "flux-2-pro",
+        "name": "FLUX.2 Pro",
+        "provider": "flux",
+        "version": "1"
+      },
+      "round": 1,
+      "status": "success",
+      "created_at": "2026-09-11T05:19:27.068+00:00",
+      "source": "live",
+      "mode": "parallel",
+      "requested_size": "1024x1024",
+      "request_parameters": {
+        "width": 1024,
+        "height": 1024,
+        "num_images": 1,
+        "output_format": "png"
+      },
+      "timing": {
+        "scope": "end_to_end",
+        "elapsed_ms": 11211.13,
+        "api_ms": 11187.192,
+        "download_ms": 0.0,
+        "save_ms": 9.53
+      },
+      "image": {
+        "status": "available",
+        "file": "flux-2-pro/round-01_flux-2-pro_flux-language-chec.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 975664,
+        "sha256": "429a010a1c2cf500e9d5624237ff56a3da0ec54ad05a8e23c28c2cefeca2378f"
+      },
+      "http_error_code": null,
+      "diagnostic_note": null,
+      "human_review": null,
+      "reviews_included": false,
+      "notes_file": "flux-2-pro/round-01_flux-2-pro_flux-language-chec.json"
+    },
+    {
+      "experiment_id": "e45b7d7f86d8472199795f12bf0b4d0e",
+      "topic": "flux-language-check-zh",
+      "prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "original_prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "effective_prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+      "prompt_variant": "original",
+      "image_request_started": true,
+      "prompt_recorded": true,
+      "model": {
+        "id": "flux-2-flex",
+        "name": "FLUX.2 Flex",
+        "provider": "flux",
+        "version": "1"
+      },
+      "round": 1,
+      "status": "success",
+      "created_at": "2026-09-11T05:19:27.068+00:00",
+      "source": "live",
+      "mode": "parallel",
+      "requested_size": "1024x1024",
+      "request_parameters": {
+        "width": 1024,
+        "height": 1024,
+        "num_images": 1,
+        "output_format": "png",
+        "steps": 50,
+        "guidance": 4.5
+      },
+      "timing": {
+        "scope": "end_to_end",
+        "elapsed_ms": 15990.088,
+        "api_ms": 15959.568,
+        "download_ms": 0.0,
+        "save_ms": 14.609
+      },
+      "image": {
+        "status": "available",
+        "file": "flux-2-flex/round-01_flux-2-flex_flux-language-chec.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 770739,
+        "sha256": "176f38b66078e5c5acd899e0cb2ec3a0c59e899a88b88ba870fea6bb85a5ad1c"
+      },
+      "http_error_code": null,
+      "diagnostic_note": null,
+      "human_review": null,
+      "reviews_included": false,
+      "notes_file": "flux-2-flex/round-01_flux-2-flex_flux-language-chec.json"
+    }
+  ]
+}

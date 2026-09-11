@@ -15,12 +15,12 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from image_lab import providers
+from image_lab import prompts, providers
 from image_lab.archive import ImageArchive, component
 from image_lab.locking import AlreadyRunningError, single_instance
 from image_lab.providers import (
     AppConfig, Credentials, GeneratedImage, ModelConfig, ProviderError,
-    ValidationError, build_request, generate, image_info,
+    TranslationConfig, ValidationError, build_request, generate, image_info,
 )
 from image_lab.server import Application, ConflictError, LocalServer, export_csv, parse_job_input
 from image_lab.store import RunStore, summarize, validate_rating, write_json_atomic
@@ -42,14 +42,17 @@ def config_data():
     data = json.loads((ROOT / "image-lab.config.example.json").read_text(encoding="utf-8"))
     data["resource_group"] = "image-lab-tests"
     endpoints = {
-        "mai": "https://example.services.ai.azure.com/mai/v1/images/generations",
-        "gpt": "https://example.openai.azure.com/openai/deployments/gpt-image-2/images/generations?api-version=2025-04-01-preview",
-        "flux": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-kontext-pro?api-version=preview",
+        "mai-image-2-5": "https://example.services.ai.azure.com/mai/v1/images/generations",
+        "gpt-image-2": "https://example.openai.azure.com/openai/deployments/gpt-image-2/images/generations?api-version=2025-04-01-preview",
+        "flux-1-kontext-pro": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-kontext-pro?api-version=preview",
+        "flux-2-pro": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-2-pro?api-version=preview",
+        "flux-2-flex": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-2-flex?api-version=preview",
     }
     for model in data["models"]:
         if model["id"] != "gpt-image-2-5":
             model["enabled"] = True
-            model["endpoint"] = endpoints[model["provider"]]
+            model["endpoint"] = endpoints[model["id"]]
+            model["prompt_policy"] = "original"
     return data
 
 
@@ -74,7 +77,42 @@ class ProviderTests(unittest.TestCase):
         cli.start()
         self.addCleanup(cli.stop)
         self.config = AppConfig.parse(config_data())
-        self.mai, self.gpt, self.future, self.flux = self.config.models
+        self.mai, self.gpt, self.future, self.flux, self.flux_pro, self.flux_flex = self.config.models
+
+    def test_flux_two_requests_use_native_dimensions_and_record_flex_controls(self):
+        pro = build_request(self.flux_pro, "Red cube", "2048x2048", "medium")
+        self.assertEqual(pro["width"], 2048)
+        self.assertEqual(pro["height"], 2048)
+        self.assertEqual(pro["num_images"], 1)
+        self.assertNotIn("aspect_ratio", pro)
+        self.assertNotIn("steps", pro)
+        flex = build_request(self.flux_flex, "Red cube", "1536x1024", "medium")
+        self.assertEqual(flex["steps"], 50)
+        self.assertEqual(flex["guidance"], 4.5)
+        self.assertNotIn("quality", flex)
+
+    def test_flux_two_route_and_parameter_validation(self):
+        for values in (
+            {"endpoint": self.flux_pro.endpoint},
+            {"endpoint": "https://example.services.ai.azure.com/openai/v1/images/generations"},
+            {"flux_steps": 0}, {"flux_steps": 51}, {"flux_steps": True},
+            {"flux_guidance": 1.4}, {"flux_guidance": float("nan")},
+        ):
+            with self.subTest(values=values), self.assertRaises(ValidationError):
+                ModelConfig.parse({**self.flux_flex.public(), **values})
+
+    def test_four_slot_configuration_migrates_without_enabling_services(self):
+        original = config_data()
+        original["models"] = original["models"][:4]
+        original.pop("translation")
+        for model in original["models"]:
+            model.pop("prompt_policy", None)
+        migrated = AppConfig.parse(original)
+        self.assertEqual(len(migrated.models), 6)
+        self.assertEqual(migrated.models[0].endpoint, original["models"][0]["endpoint"])
+        self.assertTrue(all(not model.enabled for model in migrated.models[4:]))
+        self.assertFalse(migrated.translation.enabled)
+        self.assertEqual(migrated.models[3].prompt_policy, "original")
 
     def test_adapters_preserve_prompt_and_only_send_supported_controls(self):
         prompt = "\u4e2d\u6587 poster"
@@ -276,6 +314,122 @@ class WorkbenchFixture(unittest.TestCase):
 
 
 class ApplicationTests(WorkbenchFixture):
+    def test_older_settings_clients_do_not_erase_new_model_connections(self):
+        old = self.app.config.public()
+        old["models"] = old["models"][:4]
+        old.pop("translation")
+        original = self.app.config.models[4:]
+        saved = self.app.save_config(old)
+        self.assertEqual(len(saved["models"]), 6)
+        for model in original:
+            after = next(item for item in saved["models"] if item["id"] == model.id)
+            self.assertEqual(after["endpoint"], model.endpoint)
+            self.assertEqual(after["enabled"], model.enabled)
+
+    def enable_english_routing(self, translator=True):
+        settings = TranslationConfig(
+            enabled=translator,
+            endpoint="https://example.openai.azure.com/openai/deployments/translator/chat/completions?api-version=2024-10-21",
+            deployment="translator",
+        )
+        self.app.config = replace(
+            self.app.config, translation=settings,
+            models=tuple(replace(model, prompt_policy="english") if model.provider == "flux" else model for model in self.app.config.models),
+        )
+
+    def test_english_translation_is_shared_once_and_actual_inputs_are_archived(self):
+        self.enable_english_routing()
+        original = "\u8bbe\u8ba1\u6d77\u62a5\uff0c\u6807\u9898\u201c\u6625\u65e5\u8bfb\u4e66\u4f1a\u201d\u3002"
+        english = 'Design a poster with the exact title "\u6625\u65e5\u8bfb\u4e66\u4f1a".'
+        with patch("image_lab.server.prompts.translate", return_value=prompts.TranslationResult(english, 9999, 9000, {"total_tokens": 120})) as translate:
+            job = self.run_job({**parameters(runs=2), "prompt": original})
+        self.assertEqual(translate.call_count, 1)
+        self.assertEqual(job["english_prompt"], english)
+        self.assertEqual(job["translation"]["elapsed_ms"], 9999)
+        for sample in job["samples"]:
+            is_flux = sample["model_id"] == "flux-1-kontext-pro"
+            self.assertEqual(sample["request"]["prompt"], english if is_flux else original)
+            self.assertEqual(sample["effective_prompt"], english if is_flux else original)
+            self.assertEqual(sample["original_prompt"], original)
+            self.assertEqual(sample["prompt_variant"], "translated_english" if is_flux else "original")
+            self.assertLess(sample["elapsed_ms"], 9999)
+        folder = self.app.archive_dir / job["archive"]["relative_dir"]
+        manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+        flux = next(sample for sample in manifest["samples"] if sample["model"]["id"] == "flux-1-kontext-pro")
+        self.assertEqual(flux["prompt"], english)
+        self.assertEqual(flux["original_prompt"], original)
+        self.assertNotIn("deployment", manifest["translation"])
+        self.assertIn("_en.png", flux["image"]["file"])
+        self.assertTrue(any("different prompt-language" in warning for warning in job["warnings"]))
+
+    def test_reviewed_english_counterpart_needs_no_translation_call(self):
+        self.enable_english_routing(translator=False)
+        with patch("image_lab.server.prompts.translate") as translate:
+            job = self.run_job({**parameters(), "english_prompt": "A bookstore poster."})
+        translate.assert_not_called()
+        flux = next(sample for sample in job["samples"] if sample["model_id"] == "flux-1-kontext-pro")
+        self.assertEqual(flux["prompt_variant"], "provided_english")
+        self.assertEqual(job["translation"]["status"], "not_needed")
+
+    def test_language_diagnostic_mode_preserves_chinese_for_every_model(self):
+        self.enable_english_routing(translator=False)
+        with patch("image_lab.server.prompts.translate") as translate:
+            job = self.run_job({**parameters(), "language_mode": "original_all"})
+        translate.assert_not_called()
+        self.assertTrue(all(sample["request"]["prompt"] == job["prompt"] for sample in job["samples"]))
+
+    def test_english_failure_does_not_fall_back_to_chinese_or_block_original_models(self):
+        self.enable_english_routing()
+        with patch("image_lab.server.prompts.translate", side_effect=prompts.TranslationError("Refused", 123, True)):
+            job = self.run_job()
+        self.assertEqual(job["status"], "completed")
+        self.assertEqual(job["translation"]["status"], "failed")
+        self.assertEqual(self.generate.call_count, 2)
+        flux = next(sample for sample in job["samples"] if sample["model_id"] == "flux-1-kontext-pro")
+        self.assertEqual(flux["status"], "failed")
+        self.assertIsNone(flux["started_at"])
+        self.assertIsNone(flux["effective_prompt"])
+        self.assertIn("preparation failed", flux["error"])
+
+    def test_missing_english_service_is_rejected_before_billing(self):
+        self.enable_english_routing(translator=False)
+        with self.assertRaises(ValidationError):
+            self.app.create_job(parameters())
+        self.generate.assert_not_called()
+        self.assertFalse(self.app.store.history())
+
+    def test_cancellation_during_translation_sends_no_image_requests(self):
+        self.enable_english_routing()
+        entered, release = threading.Event(), threading.Event()
+        def translate(*args):
+            entered.set()
+            if not release.wait(5):
+                raise RuntimeError("Test release timeout")
+            return prompts.TranslationResult("A bookstore poster.", 10, 5, None)
+        with patch("image_lab.server.prompts.translate", side_effect=translate):
+            job = self.app.create_job(parameters())
+            try:
+                self.assertTrue(entered.wait(5))
+                self.app.cancel(job["id"])
+            finally:
+                release.set()
+            self.app.worker.join(timeout=10)
+        self.generate.assert_not_called()
+        self.assertEqual(self.app.store.get(job["id"])["status"], "cancelled")
+
+    def test_all_six_slots_can_participate_without_a_four_model_limit(self):
+        future = next(model for model in self.app.config.models if model.id == "gpt-image-2-5")
+        future = replace(
+            future, enabled=True, deployment="gpt-image-2.5",
+            endpoint="https://example.openai.azure.com/openai/v1/images/generations",
+        )
+        self.app.config = replace(
+            self.app.config,
+            models=tuple(future if model.id == future.id else model for model in self.app.config.models),
+        )
+        job = self.run_job(parameters(model_ids=[model.id for model in self.app.config.models]))
+        self.assertEqual(job["progress"], {"done": 6, "total": 6})
+
     def test_readable_archive_has_model_topic_round_and_complete_notes(self):
         job = self.run_job({**parameters(), "topic": "Bookstore / \u4e2d\u6587\u6d77\u62a5"})
         self.assertEqual(job["topic"], "Bookstore / \u4e2d\u6587\u6d77\u62a5")
@@ -636,6 +790,85 @@ class PublicPackageTests(unittest.TestCase):
             self.assertNotRegex(name, r'[\\/:*?"<>|]')
             self.assertNotIn("..", name)
             self.assertLessEqual(len(name.encode("utf-16-le")), 80)
+
+
+class PromptTranslationTests(unittest.TestCase):
+    def setUp(self):
+        cli = patch("image_lab.providers.shutil.which", return_value="mock-azure-cli")
+        cli.start()
+        self.addCleanup(cli.stop)
+        self.settings = TranslationConfig(
+            enabled=True, endpoint="https://example.openai.azure.com/openai/deployments/translator/chat/completions?api-version=2024-10-21",
+            deployment="translator",
+        )
+        self.credentials = Mock()
+        self.credentials.headers.return_value = {"Authorization": "Bearer unit-test-translation-token"}
+
+    def test_language_detection_distinguishes_instructions_and_quoted_chinese_text(self):
+        self.assertTrue(prompts.needs_english_version("\u4e00\u4e2a\u7ea2\u8272\u7acb\u65b9\u4f53"))
+        self.assertTrue(prompts.needs_english_version('"\u6625\u65e5\u8bfb\u4e66\u4f1a"'))
+        self.assertFalse(prompts.needs_english_version('A poster with title "\u6625\u65e5\u8bfb\u4e66\u4f1a".'))
+        self.assertFalse(prompts.needs_english_version("A reader's hand beside a card titled '\u6625\u65e5\u8bfb\u4e66\u4f1a'."))
+        self.assertFalse(prompts.needs_english_version("A red cube."))
+
+    def test_translation_preserves_quoted_display_text(self):
+        original = "\u6d77\u62a5\u6807\u9898\u201c\u6625\u65e5\u8bfb\u4e66\u4f1a\u201d"
+        english = 'A poster with the title "\u6625\u65e5\u8bfb\u4e66\u4f1a".'
+        prompts.validate_translation(original, english)
+        with self.assertRaises(ValidationError):
+            prompts.validate_translation(original, "A Spring Reading Club poster.")
+        with self.assertRaises(ValidationError):
+            prompts.validate_english_prompt("\u8fd9\u4ecd\u7136\u662f\u4e2d\u6587\u6307\u4ee4")
+
+    def test_translation_request_is_utf8_json_and_does_not_forward_keys_in_messages(self):
+        original = "\u753b\u4e00\u4e2a\u7ea2\u8272\u7acb\u65b9\u4f53"
+        payload = {
+            "choices": [{"finish_reason": "stop", "message": {"content": json.dumps({"english_prompt": "Draw a red cube."})}}],
+            "usage": {"prompt_tokens": 20, "completion_tokens": 10, "total_tokens": 30},
+        }
+        opener = Mock()
+        opener.open.return_value = io.BytesIO(json.dumps(payload).encode())
+        with patch("image_lab.prompts.urllib.request.build_opener", return_value=opener):
+            result = prompts.translate(original, self.settings, self.credentials, "subscription")
+        body = json.loads(opener.open.call_args.args[0].data)
+        self.assertEqual(body["messages"][1]["content"], original)
+        self.assertEqual(body["response_format"], {"type": "json_object"})
+        self.assertNotIn("unit-test-translation-token", json.dumps(body))
+        self.assertEqual(result.english_prompt, "Draw a red cube.")
+        self.assertEqual(result.usage["total_tokens"], 30)
+
+    def test_truncated_or_invalid_translation_is_not_accepted(self):
+        for payload in (
+            {"choices": [{"finish_reason": "length", "message": {"content": '{"english_prompt":"unfinished"}'}}]},
+            {"choices": [{"finish_reason": "stop", "message": {"content": "not-json"}}]},
+            {"choices": [{"finish_reason": "stop", "message": {"content": '{"english_prompt":"\\u4e2d\\u6587"}'}}]},
+        ):
+            opener = Mock()
+            opener.open.return_value = io.BytesIO(json.dumps(payload).encode())
+            with patch("image_lab.prompts.urllib.request.build_opener", return_value=opener):
+                with self.assertRaises(prompts.TranslationError) as error:
+                    prompts.translate("\u4e2d\u6587", self.settings, self.credentials, "subscription")
+            self.assertTrue(error.exception.request_attempted)
+
+    def test_translation_timeout_is_reported_without_retry(self):
+        opener = Mock()
+        opener.open.side_effect = TimeoutError("timed out")
+        with patch("image_lab.prompts.urllib.request.build_opener", return_value=opener):
+            with self.assertRaises(prompts.TranslationError) as error:
+                prompts.translate("\u7ea2\u8272", self.settings, self.credentials, "subscription")
+        self.assertEqual(opener.open.call_count, 1)
+        self.assertTrue(error.exception.request_attempted)
+
+    def test_translator_configuration_rejects_untrusted_hosts_and_wrong_paths(self):
+        for change in (
+            {"endpoint": "https://untrusted.example/chat/completions"},
+            {"endpoint": "https://api.openai.com/v1/chat/completions"},
+            {"endpoint": "https://example.openai.azure.com/openai/v1/images/generations"},
+            {"deployment": "mismatched"},
+            {"api_key": "do-not-store-a-key"},
+        ):
+            with self.subTest(change=change), self.assertRaises(ValidationError):
+                TranslationConfig.parse({**self.settings.public(), **change})
 
 
 if __name__ == "__main__":

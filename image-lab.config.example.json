@@ -2,6 +2,15 @@
   "subscription_id": "00000000-0000-0000-0000-000000000000",
   "resource_group": "your-resource-group",
   "request_timeout_seconds": 300,
+  "translation": {
+    "enabled": false,
+    "endpoint": "",
+    "deployment": "gpt-4.1-mini",
+    "auth_mode": "azure_cli",
+    "api_key_env": "",
+    "api_key_header": "api-key",
+    "timeout_seconds": 60
+  },
   "models": [
     {
       "id": "mai-image-2-5",
@@ -14,6 +23,7 @@
       "api_key_header": "api-key",
       "version": "",
       "supported_sizes": ["1024x1024"],
+      "prompt_policy": "original",
       "enabled": false
     },
     {
@@ -27,6 +37,7 @@
       "api_key_header": "api-key",
       "version": "",
       "supported_sizes": ["1024x1024", "1536x1024", "1024x1536"],
+      "prompt_policy": "original",
       "enabled": false
     },
     {
@@ -40,6 +51,7 @@
       "api_key_header": "api-key",
       "version": "",
       "supported_sizes": ["1024x1024"],
+      "prompt_policy": "original",
       "enabled": false
     },
     {
@@ -53,6 +65,37 @@
       "api_key_header": "Authorization",
       "version": "",
       "supported_sizes": ["1024x1024"],
+      "prompt_policy": "english",
+      "enabled": false
+    },
+    {
+      "id": "flux-2-pro",
+      "name": "FLUX.2 Pro",
+      "provider": "flux",
+      "deployment": "FLUX.2-pro",
+      "endpoint": "",
+      "auth_mode": "azure_cli",
+      "api_key_env": "",
+      "api_key_header": "Authorization",
+      "version": "",
+      "supported_sizes": ["1024x1024", "1536x1024", "1024x1536", "2048x2048"],
+      "prompt_policy": "original",
+      "enabled": false
+    },
+    {
+      "id": "flux-2-flex",
+      "name": "FLUX.2 Flex",
+      "provider": "flux",
+      "deployment": "FLUX.2-flex",
+      "endpoint": "",
+      "auth_mode": "azure_cli",
+      "api_key_env": "",
+      "api_key_header": "Authorization",
+      "version": "",
+      "supported_sizes": ["1024x1024", "1536x1024", "1024x1536", "2048x2048"],
+      "prompt_policy": "original",
+      "flux_steps": 50,
+      "flux_guidance": 4.5,
       "enabled": false
     }
   ]

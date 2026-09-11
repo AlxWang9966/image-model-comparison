@@ -1,0 +1,49 @@
+{
+  "experiment_id": "6138c0f0599248ec834f450b3143682a",
+  "topic": "flux-language-check-en",
+  "prompt": "A white photography studio background with only three objects on the table: on the left side of the frame is a red cube, on the right side is a blue sphere, and in the middle is a yellow mug with a handle. All objects are fully visible, realistic product photography, soft shadows, no text or decorations.",
+  "original_prompt": "白色摄影棚背景，桌面上只有三个物体：画面左侧是一个红色立方体，右侧是一个蓝色球体，中间是一个带手柄的黄色马克杯。全部物体完整可见，真实产品摄影，柔和阴影，不要文字或装饰。",
+  "effective_prompt": "A white photography studio background with only three objects on the table: on the left side of the frame is a red cube, on the right side is a blue sphere, and in the middle is a yellow mug with a handle. All objects are fully visible, realistic product photography, soft shadows, no text or decorations.",
+  "prompt_variant": "translated_english",
+  "image_request_started": true,
+  "prompt_recorded": true,
+  "model": {
+    "id": "flux-2-flex",
+    "name": "FLUX.2 Flex",
+    "provider": "flux",
+    "version": "1"
+  },
+  "round": 1,
+  "status": "success",
+  "created_at": "2026-09-11T05:22:34.403+00:00",
+  "source": "live",
+  "mode": "parallel",
+  "requested_size": "1024x1024",
+  "request_parameters": {
+    "width": 1024,
+    "height": 1024,
+    "num_images": 1,
+    "output_format": "png",
+    "steps": 50,
+    "guidance": 4.5
+  },
+  "timing": {
+    "scope": "end_to_end",
+    "elapsed_ms": 13808.116,
+    "api_ms": 13759.658,
+    "download_ms": 0.0,
+    "save_ms": 25.326
+  },
+  "image": {
+    "status": "available",
+    "file": "flux-2-flex/round-01_flux-2-flex_flux-language-chec_en.png",
+    "width": 1024,
+    "height": 1024,
+    "bytes": 1105110,
+    "sha256": "7c1994e766133fd56b956686cb603ff3179bf3a657633622ca6fad0e8a0a87d4"
+  },
+  "http_error_code": null,
+  "diagnostic_note": null,
+  "human_review": null,
+  "reviews_included": false
+}

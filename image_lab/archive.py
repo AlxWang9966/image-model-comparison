@@ -106,6 +106,9 @@ class ImageArchive:
             if not model_folder.is_relative_to(folder):
                 raise ArchiveError("Model directory is outside the experiment archive.")
             basename = f"round-{sample['round']:02d}_{component(model['id'], 24)}_{component(topic, 18)}"
+            variant = sample.get("prompt_variant", "original")
+            if variant in ("provided_english", "translated_english"):
+                basename += "_en"
             filename = sample.get("filename")
             archived_image = None
             checksum = None
@@ -142,7 +145,11 @@ class ImageArchive:
             record = {
                 "experiment_id": job["id"],
                 "topic": topic,
-                "prompt": job.get("prompt") or None,
+                "prompt": sample.get("effective_prompt", request.get("prompt")) or None,
+                "original_prompt": job.get("prompt") or None,
+                "effective_prompt": sample.get("effective_prompt", request.get("prompt")) or None,
+                "prompt_variant": variant,
+                "image_request_started": bool(sample.get("started_at")) or job.get("source") == "legacy",
                 "prompt_recorded": bool(job.get("prompt")),
                 "model": public_model(model),
                 "round": sample["round"],
@@ -153,7 +160,8 @@ class ImageArchive:
                 "requested_size": job["size"],
                 "request_parameters": {
                     key: request[key] for key in (
-                        "size", "width", "height", "n", "quality", "output_format", "aspect_ratio",
+                        "size", "width", "height", "n", "num_images", "quality", "output_format",
+                        "aspect_ratio", "steps", "guidance",
                     ) if key in request
                 },
                 "timing": {
@@ -189,6 +197,12 @@ class ImageArchive:
             "experiment_id": job["id"],
             "topic": topic,
             "prompt": job.get("prompt") or None,
+            "english_prompt": job.get("english_prompt") or None,
+            "language_mode": job.get("language_mode", "original_all"),
+            "translation": {
+                key: job["translation"].get(key)
+                for key in ("status", "elapsed_ms", "api_ms", "request_attempted", "usage")
+            } if isinstance(job.get("translation"), dict) else None,
             "created_at": job["created_at"],
             "status": job["status"],
             "source": job["source"],
@@ -219,10 +233,13 @@ class ImageArchive:
             "## Full prompt", "",
         ]
         rows.extend("    " + line for line in (job.get("prompt") or "[Not recorded in the original benchmark]").splitlines())
+        if job.get("english_prompt"):
+            rows.extend(["", "## English counterpart", ""])
+            rows.extend("    " + line for line in job["english_prompt"].splitlines())
         rows += [
             "", "## Images and per-image notes", "",
-            "| Model | Version | Round | Status | Image | Time (s) | Notes |",
-            "| --- | --- | --- | --- | --- | --- | --- |",
+            "| Model | Version | Round | Prompt variant | Status | Image | Time (s) | Notes |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
         for sample in samples:
             image_file = sample["image"]["file"]
@@ -231,13 +248,15 @@ class ImageArchive:
             elapsed_text = f"{elapsed / 1000:.3f}" if elapsed is not None else "not measured"
             rows.append(
                 f"| {markdown_text(sample['model']['name'])} | {markdown_text(sample['model']['version'] or 'unknown')} "
-                f"| {sample['round']} | {sample['status']} | {image_link} "
+                f"| {sample['round']} | {sample['prompt_variant']} | {sample['status']} | {image_link} "
                 f"| {elapsed_text} | [JSON notes]({urllib.parse.quote(sample['notes_file'])}) |"
             )
         rows += [
             "", "## Interpretation and sharing", "",
             "- Each image is a byte-for-byte copy of its retained source; SHA-256 is recorded in its JSON notes.",
             "- End-to-end latency includes generation, network, decoding, and original image saving, not this secondary archive copy.",
+            "- English translation/preparation is measured separately and excluded from image-generation latency.",
+            "- Per-image notes preserve original and effective prompts. Different language variants are not identical-prompt comparisons.",
             "- Legacy API-response timing excludes decoding/saving. Do not pool the two timing scopes.",
             "- A small sample is a demonstration, not a reliable quality/speed ranking.",
             "- Missing legacy images and failed calls remain explicit; no synthetic replacement is created.",

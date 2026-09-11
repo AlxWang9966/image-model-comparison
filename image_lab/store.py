@@ -128,6 +128,9 @@ def empty_sample(model_id: str, round_number: int, request: dict[str, Any]) -> d
         "warnings": [],
         "rating": None,
         "request": request,
+        "original_prompt": request.get("prompt"),
+        "effective_prompt": request.get("prompt"),
+        "prompt_variant": "original",
         "revised_prompt": None,
     }
 

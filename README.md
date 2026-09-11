@@ -4,7 +4,7 @@
 
 这是一个在电脑本地运行的对比工作台：输入提示词、选择模型，查看原图和真实耗时，再通过盲评与人工评分记录画质判断。每轮图片会按**主题 → 测试批次 → 模型 → 轮次**自动归档，并附上完整备注。
 
-当前发布版：**v0.1.0（本地演示 / 评测工具）**。可从 [Releases](https://github.com/AlxWang9966/image-model-comparison/releases) 获取固定版本的源代码压缩包。
+当前版本：**v0.2.0（本地演示 / 评测工具）**。可从 [Releases](https://github.com/AlxWang9966/image-model-comparison/releases) 获取固定版本；v0.1.0 基线保持不变。
 
 > **给首次使用的客户**
 >
@@ -14,13 +14,14 @@
 
 ![Image Lab 界面示例](docs/images/workbench.png)
 
-界面截图来自一个示例实验。首次下载后所有模型默认禁用，自己的资源配置完成后才能生成。原图及逐图备注见 [公开示例](examples/README.md)。
+界面截图展示 v0.1 的基础流程；v0.2 另外加入 FLUX.2、英文准备和语言对比控制。首次下载后所有模型及翻译服务默认禁用，自己的资源配置完成后才能生成。原图及逐图备注见 [公开示例](examples/README.md)。
 
 ## 功能
 
 | 功能 | 说明 |
 | --- | --- |
-| 同提示词对比 | 多个模型使用同一段原始提示词，统一共同支持的目标尺寸 |
+| 同任务对比 | 使用原文或明确记录的英文版本，统一共同支持的目标尺寸；可强制全模型原文 |
+| 英文准备 | 内置审核过的英文预设；自定义中文可通过使用者配置的 Azure 文本模型准备英文 |
 | 多轮测速 | 每个模型重复 1–10 轮；支持并行对比或串行基准 |
 | 原图查看 | 并排、不裁剪显示；支持放大、原始大小和下载 |
 | 盲评与评分 | 隐藏模型身份及耗时；按遵循、细节、构图、文字四项人工评分 |
@@ -36,9 +37,13 @@
 | MAI Image 2.5 | Azure MAI images API | 已实现文本生图适配；需使用者自己的部署 |
 | GPT Image 2 | Azure / OpenAI GPT Images API | 支持当前适配器的同步 images/generations 协议 |
 | FLUX.1 Kontext Pro | Azure Foundry BFL 原生 API | 也支持资源实际提供的 FLUX OpenAI-compatible Image API |
+| FLUX.2 Pro | Azure Foundry `flux-2-pro` 原生 API | 多语言提示词、显式宽高、最高 2048 × 2048 |
+| FLUX.2 Flex | Azure Foundry `flux-2-flex` 原生 API | 支持 steps / guidance 调整，参数与耗时一起记录 |
 | GPT Image 2.5 | GPT Images-compatible API 预留槽位 | **未预配置，不代表模型已经公开可用或已有部署** |
 
-不要将“代码中有一个槽位”理解为已经拥有该模型的访问权限。GPT Image 2.5 必须填入实际可用、兼容当前请求格式的 endpoint 和 model/deployment；程序不会把它偷偷替换成 GPT Image 2。当前 FLUX 适配器针对 **FLUX.1 Kontext Pro**，不是任意 FLUX 版本的通用适配器。
+不要将“代码中有一个槽位”理解为已经拥有该模型的访问权限。GPT Image 2.5 必须填入实际可用、兼容当前请求格式的 endpoint 和 model/deployment；程序不会把它偷偷替换成 GPT Image 2。FLUX 适配器针对上表三个变体，不是任意 FLUX 版本的通用适配器。
+
+原有四槽位配置仍可读取，缺少的 FLUX.2 槽位会补充为禁用状态。已有模型的连接与默认原文行为不被偷偷改写；旧配置不会自动开启付费翻译。保存设置后会写入完整的新配置。
 
 ## 1. 下载并启动
 
@@ -99,10 +104,14 @@ py -3 -m image_lab --port 8765
 | Azure GPT Images | `https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR-DEPLOYMENT/images/generations?api-version=2025-04-01-preview` |
 | Azure GPT Images v1 | `https://YOUR-RESOURCE.openai.azure.com/openai/v1/images/generations` |
 | Azure FLUX Kontext 原生 BFL | `https://YOUR-RESOURCE.services.ai.azure.com/providers/blackforestlabs/v1/flux-kontext-pro?api-version=preview` |
+| Azure FLUX.2 Pro | `https://YOUR-RESOURCE.services.ai.azure.com/providers/blackforestlabs/v1/flux-2-pro?api-version=preview` |
+| Azure FLUX.2 Flex | `https://YOUR-RESOURCE.services.ai.azure.com/providers/blackforestlabs/v1/flux-2-flex?api-version=preview` |
 | Azure FLUX Images API（资源支持时） | `https://YOUR-RESOURCE.services.ai.azure.com/openai/v1/images/generations?api-version=preview` |
 | OpenAI 官方 Images API | `https://api.openai.com/v1/images/generations` |
 
 FLUX 默认建议使用已经适配的 BFL 原生路由。部分资源的 OpenAI-compatible FLUX 路由会返回 404；不要假设所有资源都提供同一组路由。程序**不在计时请求中自动切 endpoint、换模型或重试**。
+
+FLUX.2 必须使用对应的原生 BFL 路由。Flex 默认 `steps=50`、`guidance=4.5`；可在该模型的设置里改为 1–50 步、1.5–10 的 guidance。降低步数会改变质量 / 速度权衡，不能只报更快而不记录参数。Pro 不套用 Flex 的这些控制。
 
 ### 推荐：Entra ID
 
@@ -140,20 +149,60 @@ Remove-Variable secret
 
 API Key 模式不需要 Azure CLI。变量值仍会存在于运行进程的环境 / 内存中，应只在受信任的电脑和终端使用。修改环境变量后要重启服务。若 Azure 资源禁止 Key 鉴权，应使用 Entra ID，不要为了运行示例降低组织安全策略。
 
+### 中文、英文与文字渲染
+
+[BFL 官方多语言提示词指南](https://docs.bfl.ml/guides/usecases_t2i_multi_language.md)明确说明 **FLUX.2 理解多种语言**，并建议某些文化相关内容使用本地语言。该页面不是一份穷尽的中文能力保证清单；不能把“某张中文海报失败”直接解释为“整个 FLUX 家族不支持中文”。
+
+**理解中文指令**与**在图像里准确渲染中文文字**是不同能力。中文物体 / 颜色指令、中文海报文字、复杂排版应分别评价。
+
+新模板中 FLUX.2 Pro / Flex 默认保留原文。Kontext 的中文可靠性未在所查官方页面中建立，因此新模板提供英文优先路径；这是一项可改的实用策略，**不是 API 拒绝中文的声明**。已有旧配置仍保持原文，除非使用者明确改变策略。
+
+本项目的[中英文配对示例](examples/flux-language-check/README.md)使用同一个“三个彩色物体”任务，不要求图内文字：Pro / Flex 的中文输出遵循了物体、颜色和布局；Kontext 的中文输出偏离任务，而英文输出遵循了任务。这里只记录一次配对观察，不能扩展成所有中文任务或中文字形的能力保证。
+
+实验中的语言策略有三种：
+
+| 策略 | 行为 |
+| --- | --- |
+| 按各模型设置 | 使用各槽位的 `prompt_policy`：`original` 或 `english` |
+| 全部使用原文 | 绕过英文准备，用于中文能力 / 严格同字符串对照 |
+| FLUX 系列使用英文版 | 为所有选中的 FLUX 变体使用英文对应版本，MAI / GPT 保留原文 |
+
+对英文优先模型：有英文稿就使用英文稿；中文指令没有英文稿时，才需要自动准备。已经是英文指令、仅引号中有中文文字目标的提示词不必重复翻译。这只是发送策略的字符检查，不是完整的语言识别或能力认证。
+
+内置预设有配对英文稿，**不增加翻译调用**。修改原文时 UI 会清除旧英文稿，避免不同任务误配。自定义英文稿由使用者检查语义一致性。
+
+### 自动英文准备（可选、额外云端调用）
+
+在 **模型设置 → 自动英文准备** 中启用，并填写自己的 Azure OpenAI 文本模型部署，例如支持 JSON mode 的 `gpt-4.1-mini`：
+
+```text
+https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR-TEXT-DEPLOYMENT/chat/completions?api-version=2024-10-21
+```
+
+也支持 Azure 的 `/openai/v1/chat/completions` 路由。文本部署必须支持当前适配器使用的 JSON mode、`temperature` 和 `max_tokens` 参数。新模板默认禁用翻译。
+
+每个实验最多准备一次英文稿，所有需要英文的模型与轮次复用；**原始提示词会额外发送给这个文本模型，并可能产生费用**。界面会提示这项额外调用。英文稿、准备耗时、文本 API 耗时及服务返回的 token 用量会记录到结果。
+
+自动准备不添加或删除任务要求，引号里的文字（例如 `“春日读书会”`）必须保持原样，不能把中文排版任务偷换成英文排版。输出被截断、不是英文指令或改动了引号文字时，会明确失败，不拿未完成内容继续生图。
+
+翻译失败时，需要英文的模型不发出生图请求，也不暗中退回中文；可使用原文的模型仍能继续。翻译请求超时或取消也可能已经计费，不自动重试。
+
+**不同语言版本不是严格相同字符串的比较。** 每张图都记录 `original_prompt`、`effective_prompt` 和 `prompt_variant`，结果会标注语言差异，不能用原文标签掩盖实际发送的英文。归档中的英文版本图片另有 `_en` 文件名标记。
+
 ## 3. 做一次可比较的实验
 
 1. 选择示例提示词，或输入自己的完整提示词。
 2. 填写 **提示词主题 / Topic**，如“中文海报”“产品玻璃材质”“多物体数量关系”。它会用于归档目录、文件名和备注；留空时取提示词前 32 个字符。
-3. 选择模型、共同支持的目标尺寸、轮数及执行模式。
-4. 点击 **开始对比**。实际调用数量为“模型数 × 轮数”，每个请求生成一张图，并按模型服务计费。
+3. 选择模型、语言策略、共同支持的目标尺寸、轮数及执行模式；需要时检查或补充英文稿。
+4. 点击 **开始对比**。生图调用数量为“模型数 × 轮数”；需要自动英文准备时再增加最多一次文本请求，均按相应服务计费。
 5. 查看各轮结果，点击原图放大；使用盲评后再给画质评分。
 6. 在结果下方查看归档路径。评分保存后，归档备注会同步更新。
 
 **并行模式**每个模型最多一个请求并发执行，整轮结束后才进入下一轮。**串行模式**一次一个请求，每轮轮换模型执行顺序，减少固定先后顺序带来的偏差。
 
-目前 MAI / FLUX 的共同目标尺寸是 **1024 × 1024**；只选 GPT 时还可使用横图 / 竖图。FLUX 原生接口使用 `1:1` 比例和 PNG 输出，返回的实际像素尺寸会核对、记录；不会通过暗中缩放伪造统一分辨率。
+选择 MAI 2.5 或 FLUX.1 Kontext 时，共同目标尺寸是 **1024 × 1024**。GPT 与 FLUX.2 还支持配置内的横图 / 竖图；只选 FLUX.2 时可使用 **2048 × 2048**。Kontext 使用 `1:1` 比例，FLUX.2 发送明确的 `width` / `height`。实际返回像素尺寸都会核对、记录，不会通过暗中缩放伪造统一分辨率。
 
-GPT 的 `low / medium / high / auto` 只适用于 GPT。MAI、FLUX 使用各自原生设置，**不是同一个“质量档位”**。
+GPT 的 `low / medium / high / auto` 只适用于 GPT。MAI、FLUX 使用各自原生设置，Flex 的 steps / guidance 也不是 GPT quality，**它们不是同一个“质量档位”**。
 
 ### 如何理解速度
 
@@ -163,9 +212,11 @@ GPT 的 `low / medium / high / auto` 只适用于 GPT。MAI、FLUX 使用各自�
 | `api_ms` | 发出请求到完整 API 响应读完 |
 | `download_ms` | API 返回图片 URL 时，额外下载原图的时间；base64 响应通常为 0 |
 | `save_ms` | 原始图片写入磁盘的时间 |
+| `translation.elapsed_ms` | 英文准备总时间（包含其鉴权、文本服务调用和结果检查），不叠加到单张图耗时 |
+| `translation.api_ms` | 额外文本模型 API 的请求时间 |
 | 均值 / P50 / P95 | 仅使用当前实验的成功样本，P95 使用 nearest-rank 算法 |
 
-端到端时间包含网络和图片传输，**不是纯模型推理时间**；不包含 Azure 登录、调度排队、实验元数据写入，以及后续的可读归档副本写入。base64 解码 / 检查包含在端到端时间中，因此拆分指标不必刚好相加等于总时间。
+端到端时间包含网络和图片传输，**不是纯模型推理时间**；不包含英文准备、Azure 登录、调度排队、实验元数据写入，以及后续的可读归档副本写入。base64 解码 / 检查包含在端到端时间中，因此拆分指标不必刚好相加等于总时间。
 
 失败、限流、超时单独记录，不作为成功样本混入均值。小样本的 P95 只是描述性数字；建议多提示词、多轮复测，不要把单次最快当成稳定结论。
 
@@ -217,10 +268,11 @@ image-lab-archive\
 
 | 字段 | 内容 |
 | --- | --- |
-| `topic` / `prompt` | 主题与完整原始提示词；旧记录未知时明确为空 |
+| `topic` / `original_prompt` | 主题与完整原始任务提示词；旧记录未知时明确为空 |
+| `prompt` / `effective_prompt` / `prompt_variant` | 该样本实际准备的提示词与语言版本；结合状态及 `image_request_started` 判断是否已开始调用 |
 | `model` | 模型名称、固定模型 ID、提供方、记录的版本 |
 | `experiment_id` / `round` | 测试批次与轮次 |
-| `request_parameters` | 尺寸、质量、数量、格式或比例等实际参数 |
+| `request_parameters` | 尺寸、质量、数量、格式、比例以及 Flex steps / guidance 等实际参数 |
 | `timing` | 计时口径与各项毫秒耗时 |
 | `image` | 文件位置、真实像素尺寸、字节数、SHA-256 |
 | `human_review` | 已填的四项评分及观察笔记 |
@@ -250,6 +302,7 @@ image-lab-archive\
 | API Key / Entra Token | 后端内存或进程环境变量；不放浏览器、源码或备注 |
 | 云端连接字段 | 可读图片归档不包含 endpoint、部署别名、订阅 ID、完整错误或绝对源路径 |
 | 提示词、图像、主题、人工备注 | 仍可能是客户数据；默认只留本地，外发前必须人工审核 |
+| 自动英文准备 | 仅在明确启用后使用；原文会发送至使用者配置的额外 Azure 文本部署，英文稿也按客户数据保护 |
 | UI JSON / CSV 工程导出 | 可能含部署名和 endpoint 等配置快照，适合内部复现，不等于脱敏分享包 |
 | `examples` | 只放明确审核过的固定示例，不自动收集后续生成结果 |
 
@@ -261,7 +314,9 @@ image-lab-archive\
 
 | 问题 | 处理 |
 | --- | --- |
-| 首次看到 `0 / 4` 已配置 | 正常：模板默认禁用所有模型，先配置自己的资源并启用 |
+| 首次看到 `0 / 6` 已配置 | 正常：模板默认禁用所有模型，先配置自己的资源并启用 |
+| 中文指令需要英文稿 | 使用内置配对英文稿、手工提供英文，或配置并启用自动英文准备；也可明确选择全部原文测试 |
+| 英文准备失败 / 引号文字改变 | 需要英文的图像模型不会调用；检查文本部署权限 / 协议或手工给出经审核的英文稿 |
 | 找不到 Python | 安装 Python 3.10+；也可使用 Azure CLI 自带的运行时 |
 | PowerShell 不允许运行脚本 | 遵循组织策略；可使用 `py -3 -m image_lab`，无需修改机器执行策略 |
 | Azure 登录失败 / 401 | 确认 `az login`、订阅和所选鉴权方式；Key 模式检查服务端变量 |
@@ -293,6 +348,7 @@ image-model-comparison\
   image_lab\
     server.py                    # 本地 HTTP API、调度与启动
     providers.py                 # 模型适配、鉴权与响应处理
+    prompts.py                   # 英文准备、引号文字保护和语言发送策略
     store.py                     # 原始结果、评分和旧记录导入
     archive.py                   # 可读图片归档和逐图备注
     locking.py                   # 多实例文件锁
