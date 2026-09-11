@@ -1,0 +1,41 @@
+{
+  "experiment_id": "28fd876eaa65452382359f4666eea9e3",
+  "topic": "chinese-bookstore-poster",
+  "prompt": "设计一张中文海报。主标题：‘春日读书会’。副标题：‘周末城市书展’。画面是明亮的书店橱窗、柔和阳光、绿色植物、桌上的书和咖啡，版式简洁高级，中文标题清晰居中，温暖自然的商业海报风格。",
+  "prompt_recorded": true,
+  "model": {
+    "id": "mai-image-2-5",
+    "name": "MAI Image 2.5",
+    "provider": "mai",
+    "version": "2026-06-02"
+  },
+  "round": 1,
+  "status": "success",
+  "created_at": "2026-09-10T08:04:19.702+00:00",
+  "source": "live",
+  "mode": "parallel",
+  "requested_size": "1024x1024",
+  "request_parameters": {
+    "width": 1024,
+    "height": 1024
+  },
+  "timing": {
+    "scope": "end_to_end",
+    "elapsed_ms": 26388.498,
+    "api_ms": 26375.205,
+    "download_ms": 0.0,
+    "save_ms": 7.098
+  },
+  "image": {
+    "status": "available",
+    "file": "mai-image-2-5/round-01_mai-image-2-5_chinese-bookstore.png",
+    "width": 1024,
+    "height": 1024,
+    "bytes": 1446008,
+    "sha256": "fe3583014b128a1169229d3fe33b73eacf69d64380e1a7d7e6420d592742c6f7"
+  },
+  "http_error_code": null,
+  "diagnostic_note": null,
+  "human_review": null,
+  "reviews_included": false
+}

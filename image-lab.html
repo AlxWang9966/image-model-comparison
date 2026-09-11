@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="本地图像生成模型对比工作台">
+  <title>Image Lab · 图像模型对比</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--cp-bg); color: var(--cp-text); font: 14px/1.6 "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; }
+    button, input, select, textarea { font: inherit; }
+    button, .button { cursor: pointer; border: 1px solid var(--cp-border); border-radius: .625rem; padding: 8px 12px; background: var(--cp-surface); color: var(--cp-text); display: inline-flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none; font-weight: 600; line-height: 1.5; }
+    button:hover, .button:hover { background: var(--cp-surface-soft); border-color: var(--cp-border-strong); }
+    button:disabled, .button[aria-disabled="true"] { cursor: not-allowed; opacity: .45; }
+    button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--cp-accent); outline-offset: 3px; }
+    .primary { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
+    .primary:hover { background: var(--cp-accent-hover); border-color: var(--cp-accent-hover); }
+    .subtle { background: var(--cp-bg-elevated); }
+    .small { padding: 5px 9px; font-size: 12px; }
+    .icon { width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .muted, .hint { color: var(--cp-text-muted); }
+    .hint { font-size: 12px; line-height: 1.65; }
+    .mono { font-family: Consolas, "Courier New", Courier, monospace; font-variant-numeric: tabular-nums; }
+    .eyebrow { font-size: 11px; letter-spacing: .15em; font-weight: 700; color: var(--cp-accent); }
+    .topbar { border-bottom: 1px solid var(--cp-border); background: var(--cp-bg-elevated); }
+    .top-inner { max-width: 1760px; margin: auto; padding: 16px 32px; display: flex; align-items: center; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 19px; font-weight: 750; letter-spacing: -.04em; }
+    .brand-mark { width: 34px; height: 34px; border-radius: 10px; background: var(--cp-accent); color: var(--cp-accent-fg); display: grid; place-items: center; }
+    .brand-mark .icon { width: 23px; height: 23px; }
+    .brand-sub { border-left: 1px solid var(--cp-border); padding-left: 24px; color: var(--cp-text-muted); font-size: 12px; }
+    .theme-mobile { display: none; }
+    .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .connection { margin-right: 12px; font-size: 11px; color: var(--cp-text-muted); display: flex; align-items: center; gap: 7px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cp-border-strong); }
+    .connected .dot { background: var(--cp-success); }
+    main { max-width: 1760px; padding: 32px; margin: auto; }
+    .hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+    h1 { font-size: clamp(24px, 2.4vw, 36px); line-height: 1.3; letter-spacing: -.045em; margin: 8px 0 12px; font-weight: 700; }
+    h2, h3, p { margin: 0; }
+    h2 { font-size: 17px; letter-spacing: -.02em; }
+    h3 { font-size: 14px; }
+    .hero p { color: var(--cp-text-muted); font-size: 13px; }
+    .hero-stamp { text-align: right; font-size: 12px; color: var(--cp-text-muted); white-space: nowrap; }
+    .hero-stamp strong { color: var(--cp-text); font-size: 28px; display: block; font-weight: 500; letter-spacing: -.06em; }
+    .layout { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 24px; align-items: start; }
+    .panel { border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); }
+    .setup { padding: 20px; }
+    .section-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 20px; }
+    .step { font-size: 11px; color: var(--cp-text-soft); letter-spacing: .1em; }
+    .field { margin-bottom: 16px; }
+    .field > label, .field-label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 12px; font-weight: 600; }
+    .field-label span { font-weight: 400; }
+    input:not([type="checkbox"]):not([type="range"]), select, textarea { width: 100%; background: var(--cp-bg-elevated); border: 1px solid var(--cp-border); border-radius: .625rem; padding: 9px 10px; color: var(--cp-text); font-size: 13px; outline: none; }
+    textarea { resize: vertical; min-height: 150px; line-height: 1.8; }
+    input:focus, select:focus, textarea:focus { border-color: var(--cp-accent); box-shadow: 0 0 0 2px var(--cp-accent-soft); }
+    input[type="checkbox"], input[type="range"] { accent-color: var(--cp-accent); }
+    input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .model-list { display: grid; gap: 8px; margin: 8px 0 20px; }
+    .model-option { display: flex; align-items: center; gap: 9px; padding: 10px; border: 1px solid var(--cp-border); border-radius: 10px; cursor: pointer; }
+    .model-option:has(input:checked) { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .model-option input { margin: 0; flex-shrink: 0; }
+    .model-option.unavailable { border-style: dashed; color: var(--cp-text-muted); cursor: default; }
+    .model-option .model-text { min-width: 0; flex: 1; }
+    .model-option strong { display: block; font-size: 12px; font-weight: 600; }
+    .model-option small { display: block; font-size: 10px; color: var(--cp-text-muted); }
+    .provider-mark { width: 27px; height: 27px; border: 1px solid var(--cp-border); border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--cp-surface); color: var(--cp-text); flex-shrink: 0; }
+    .setup .launch { width: 100%; padding: 12px; margin-top: 4px; }
+    .request-count { text-align: center; margin-top: 10px; font-size: 11px; color: var(--cp-text-muted); }
+    .setup-footer { border-top: 1px solid var(--cp-border); margin-top: 20px; padding-top: 14px; }
+    .workspace { min-width: 0; }
+    .workspace-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; min-height: 40px; }
+    .workspace-title { display: flex; gap: 10px; align-items: center; }
+    .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; background: var(--cp-surface-soft); color: var(--cp-text-muted); white-space: nowrap; }
+    .badge.success { color: var(--cp-success); }
+    .badge.danger { color: var(--cp-danger); }
+    .badge.accent { color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .run-line { padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; background: var(--cp-bg-elevated); }
+    .run-meta { display: flex; flex-wrap: wrap; gap: 5px 16px; font-size: 11px; color: var(--cp-text-muted); flex: 1; min-width: 0; }
+    .round-picker { width: 105px; flex-shrink: 0; }
+    .round-picker select { padding: 6px 8px; font-size: 12px; }
+    .progress { height: 3px; background: var(--cp-border); border-radius: 4px; overflow: hidden; margin: -5px 0 16px; }
+    .progress > span { display: block; height: 100%; background: var(--cp-accent); transition: width .25s; }
+    .notice { padding: 12px 16px; border: 1px solid var(--cp-border); border-left: 3px solid var(--cp-accent); border-radius: 10px; font-size: 12px; margin-bottom: 16px; background: var(--cp-bg-elevated); }
+    .notice.error { border-left-color: var(--cp-danger); }
+    .notice-flex { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .notice strong { color: var(--cp-accent); }
+    .result-grid { display: grid; grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr)); gap: 16px; }
+    .result-card { overflow: hidden; min-width: 0; }
+    .result-card.fastest { border-color: var(--cp-accent); }
+    .card-heading { min-height: 69px; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+    .card-name { min-width: 0; flex: 1; }
+    .card-name h3 { font-size: 13px; line-height: 1.45; }
+    .card-name p { font-size: 10px; color: var(--cp-text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .image-area { aspect-ratio: 1; background: var(--cp-surface-soft); position: relative; border-top: 1px solid var(--cp-border); border-bottom: 1px solid var(--cp-border); display: grid; place-items: center; overflow: hidden; }
+    .image-button { border: 0; border-radius: 0; padding: 0; width: 100%; height: 100%; background: var(--cp-surface-soft); cursor: zoom-in; }
+    .image-button img { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .image-button:hover { border: 0; background: var(--cp-surface-soft); }
+    .image-overlay { position: absolute; bottom: 10px; right: 10px; background: var(--cp-panel-strong); color: var(--cp-text); border: 1px solid var(--cp-border); border-radius: 7px; padding: 5px 8px; font-size: 10px; pointer-events: none; display: flex; align-items: center; gap: 5px; }
+    .placeholder { display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; gap: 12px; padding: 24px; color: var(--cp-text-muted); font-size: 12px; max-width: 100%; max-height: 100%; }
+    .placeholder .icon { width: 32px; height: 32px; flex-basis: 32px; color: var(--cp-border-strong); }
+    .placeholder .error-detail { font-size: 11px; color: var(--cp-danger); max-height: 112px; overflow: auto; overflow-wrap: anywhere; }
+    .spinner { width: 28px; height: 28px; border: 2px solid var(--cp-border); border-top-color: var(--cp-accent); border-radius: 50%; animation: rotate 1.2s linear infinite; }
+    @keyframes rotate { to { transform: rotate(360deg); } }
+    .card-info { padding: 14px 16px 16px; }
+    .card-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .metric-label { display: block; font-size: 10px; color: var(--cp-text-muted); margin-bottom: 2px; }
+    .metric-value { font-size: 23px; letter-spacing: -.04em; font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.4; }
+    .metric-value small { font-size: 11px; color: var(--cp-text-muted); letter-spacing: 0; margin-left: 3px; font-weight: 400; }
+    .card-bottom { border-top: 1px solid var(--cp-border); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .card-bottom .hint { font-size: 10px; }
+    .card-warning { color: var(--cp-warning); font-size: 10px; margin-top: 8px; overflow-wrap: anywhere; }
+    .future-note { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px dashed var(--cp-border-strong); border-radius: 12px; margin-top: 16px; font-size: 12px; color: var(--cp-text-muted); }
+    .future-note p { flex: 1; }
+    .future-note b { color: var(--cp-text); font-weight: 600; }
+    .analysis { padding: 20px; margin-top: 24px; }
+    .analysis-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+    .speed-row { display: grid; grid-template-columns: 150px minmax(40px, 1fr) 68px 65px; gap: 12px; align-items: center; padding: 9px 0; font-size: 12px; }
+    .bar-track { height: 7px; background: var(--cp-surface-soft); border-radius: 3px; }
+    .bar-fill { height: 100%; background: var(--cp-border-strong); border-radius: 3px; min-width: 2px; }
+    .bar-fill.best { background: var(--cp-accent); }
+    .speed-value { text-align: right; font-variant-numeric: tabular-nums; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 16px; white-space: nowrap; }
+    th { font-size: 10px; font-weight: 500; color: var(--cp-text-muted); text-align: left; border-top: 1px solid var(--cp-border); border-bottom: 1px solid var(--cp-border); padding: 10px 12px; }
+    td { padding: 11px 12px; border-bottom: 1px solid var(--cp-border); font-variant-numeric: tabular-nums; }
+    th:first-child, td:first-child { padding-left: 0; }
+    th:last-child, td:last-child { padding-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+    .method-note { font-size: 11px; color: var(--cp-text-muted); margin-top: 16px; line-height: 1.8; }
+    details { font-size: 12px; }
+    summary { cursor: pointer; color: var(--cp-text-muted); font-size: 12px; }
+    .run-details { margin-top: 16px; padding: 16px 20px; }
+    .run-details p { white-space: pre-wrap; margin-top: 12px; line-height: 1.9; }
+    pre { font: 11px/1.8 Consolas, "Courier New", Courier, monospace; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); padding: 12px; border-radius: 10px; max-height: 280px; overflow: auto; }
+    .empty-note { color: var(--cp-text-muted); text-align: center; padding: 28px 16px; font-size: 12px; }
+    .footer { font-size: 10px; color: var(--cp-text-muted); display: flex; justify-content: space-between; gap: 16px; padding: 24px 0 0; }
+    dialog { width: min(800px, calc(100vw - 40px)); max-height: calc(100dvh - 64px); overflow: auto; margin: auto; border: 1px solid var(--cp-border); border-radius: 16px; padding: 0; background: var(--cp-surface); color: var(--cp-text); box-shadow: var(--cp-shadow); }
+    dialog::backdrop { background: var(--cp-overlay); }
+    .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--cp-border); position: sticky; top: 0; background: var(--cp-surface); z-index: 2; }
+    .dialog-body { padding: 24px; }
+    .dialog-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--cp-border); background: var(--cp-surface); position: sticky; bottom: 0; z-index: 2; }
+    .close { padding: 6px 9px; font-size: 18px; line-height: 1; }
+    .history-row { width: 100%; display: flex; text-align: left; justify-content: space-between; gap: 16px; padding: 16px; margin-bottom: 10px; font-weight: 400; }
+    .history-row.selected { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .history-row .history-copy { flex: 1; min-width: 0; }
+    .history-prompt { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 6px 0; font-size: 13px; }
+    .history-meta { font-size: 11px; color: var(--cp-text-muted); }
+    #settings-dialog { width: min(940px, calc(100vw - 40px)); }
+    .settings-model { border: 1px solid var(--cp-border); border-radius: 12px; margin-top: 16px; padding: 16px; }
+    .settings-model summary { color: var(--cp-text); font-weight: 600; }
+    .settings-model[open] summary { margin-bottom: 16px; }
+    .check-label { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; }
+    .settings-error, .rating-error { color: var(--cp-danger); font-size: 12px; margin: 12px 0; overflow-wrap: anywhere; }
+    .rating-intro { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+    .rating-thumb { width: 80px; height: 80px; object-fit: contain; border: 1px solid var(--cp-border); border-radius: 10px; background: var(--cp-surface-soft); }
+    .rating-row { display: grid; grid-template-columns: 1fr 150px; align-items: center; gap: 16px; margin-bottom: 16px; }
+    .rating-row label { font-weight: 600; font-size: 13px; }
+    .rating-row small { display: block; font-weight: 400; font-size: 11px; color: var(--cp-text-muted); margin-top: 3px; }
+    #zoom-dialog { width: min(1380px, calc(100vw - 40px)); }
+    .zoom-stage { height: min(68vh, 900px); background: var(--cp-surface-soft); overflow: auto; display: flex; }
+    .zoom-stage img { display: block; flex: 0 0 auto; object-fit: contain; max-width: none; margin: auto; }
+    .zoom-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 24px; border-top: 1px solid var(--cp-border); flex-wrap: wrap; }
+    .zoom-slider { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+    .zoom-slider input { width: 180px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--cp-panel-strong); color: var(--cp-text); border: 1px solid var(--cp-border-strong); border-radius: 10px; padding: 12px 20px; z-index: 10; max-width: calc(100vw - 48px); font-size: 12px; }
+    [hidden] { display: none !important; }
+    @media (min-width: 1500px) { .layout { grid-template-columns: 320px minmax(0, 1fr); gap: 28px; } .setup { padding: 24px; } }
+    @media (max-width: 1200px) { .top-inner, main { padding-left: 20px; padding-right: 20px; } .layout { grid-template-columns: 260px minmax(0, 1fr); gap: 16px; } .setup { padding: 16px; } .result-grid { gap: 10px; } .card-heading, .card-info { padding: 12px; } .card-heading .provider-mark { display: none; } .card-name h3 { font-size: 12px; } .brand-sub { display: none; } .connection { margin-right: 4px; } }
+    @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } .setup form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; } .prompt-block { grid-row: span 3; } .controls-block { grid-column: 2; } .launch-block, .setup-footer { grid-column: 1 / -1; } .setup-footer { margin-top: 12px; } .model-list { grid-template-columns: 1fr 1fr; } .workspace-head { margin-top: 12px; } .connection { display: none; } }
+    @media (max-width: 640px) { main { padding: 24px 16px; } .top-inner { padding: 12px 16px; gap: 12px; } .brand { font-size: 17px; gap: 8px; } .top-actions { gap: 5px; } .top-actions button { padding: 6px 8px; font-size: 11px; } .top-actions .icon { display: none; } .theme-mobile { display: inline; } .hero { margin-bottom: 20px; } .hero-stamp { display: none; } h1 { font-size: 26px; } .hero p { font-size: 12px; } .setup form { display: block; } .result-grid { grid-template-columns: 1fr; } .workspace-head { align-items: flex-start; flex-direction: column; } .tools { width: 100%; } .tools button, .tools .button { flex: 1; font-size: 11px; padding: 7px; } .card-heading .provider-mark { display: grid; } .card-name h3 { font-size: 14px; } .card-heading, .card-info { padding: 16px; } .run-line { align-items: flex-start; } .speed-row { grid-template-columns: 115px minmax(24px, 1fr) 58px; font-size: 11px; gap: 8px; } .speed-row .run-count { display: none; } .analysis { padding: 16px; } .analysis-top { align-items: flex-start; flex-direction: column; } .future-note { flex-wrap: wrap; } .dialog-header, .dialog-body { padding: 16px; } .dialog-footer { padding: 12px 16px; } .rating-row { grid-template-columns: 1fr 120px; } .zoom-slider input { width: 120px; } .footer { flex-direction: column; gap: 4px; } .settings-model .two-col { grid-template-columns: 1fr; gap: 0; } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .progress > span { transition: none; } }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" hidden aria-hidden="true">
+    <symbol id="i-layers" viewBox="0 0 24 24"><rect x="3" y="3" width="12" height="12" rx="3"/><rect x="9" y="9" width="12" height="12" rx="3"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 2.8 7M3 4v7h7M12 7v5l3 2"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="16" cy="17" r="3"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7Z"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6M10 7v6"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/></symbol>
+  </svg>
+  <header class="topbar">
+    <div class="top-inner">
+      <div class="brand"><span class="brand-mark"><svg class="icon"><use href="#i-layers"/></svg></span>Image Lab</div>
+      <div class="brand-sub">图像生成 · 比较工作台</div>
+      <nav class="top-actions" aria-label="工作台操作">
+        <span id="connection" class="connection"><span class="dot"></span><span id="connection-text">连接本地服务…</span></span>
+        <button id="history-button"><svg class="icon"><use href="#i-history"/></svg>历史记录</button>
+        <button id="settings-button"><svg class="icon"><use href="#i-settings"/></svg>模型设置</button>
+        <button id="theme-button" title="切换明暗主题" aria-label="切换明暗主题"><svg class="icon"><use href="#i-sun"/></svg><span class="theme-mobile">主题</span></button>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <div><div class="eyebrow">IMAGE GENERATION WORKBENCH</div><h1>让速度与画质，同时可见。</h1><p>同一个提示词，并排看结果。用真实耗时和你的判断，找到更合适的模型。</p></div>
+      <div class="hero-stamp"><strong id="ready-count">— / 4</strong>已配置模型 · 所有结果保存在本地</div>
+    </section>
+    <div id="error-banner" class="notice error notice-flex" role="alert" hidden><span id="error-text"></span><button id="retry-button" class="small">重新连接</button><button id="dismiss-error" class="small" aria-label="关闭错误提示">×</button></div>
+    <div id="active-banner" class="notice notice-flex" hidden><span id="active-text">有一轮实验正在生成，切换历史不会中断它。</span><button id="return-active" class="small">查看正在生成的实验</button></div>
+    <div class="layout">
+      <aside class="panel setup">
+        <div class="section-title"><h2>实验设置</h2><span class="step">01 / CONFIGURE</span></div>
+        <form id="experiment-form">
+          <div class="prompt-block">
+            <div class="field"><label for="preset">提示词示例 <span class="hint">可自由修改</span></label><select id="preset"><option value="poster">中文海报 · 文字与版式</option><option value="product">产品摄影 · 材质与光影</option><option value="portrait">人像摄影 · 皮肤与细节</option><option value="composition">复杂场景 · 关系与遵循</option></select></div>
+            <div class="field"><label for="topic">提示词主题 / Topic</label><input id="topic" maxlength="80" placeholder="用于图片目录与备注，例如：中文海报"><p class="hint" style="margin-top:6px">不填时使用提示词的前 32 个字符作为归档主题。</p></div>
+            <div class="field"><label for="prompt">共享提示词 <span id="prompt-count" class="hint">0 / 4000</span></label><textarea id="prompt" maxlength="4000" required spellcheck="false" aria-describedby="prompt-help"></textarea><p id="prompt-help" class="hint" style="margin-top:6px">所有选中的模型收到同一段原始提示词。</p></div>
+          </div>
+          <div class="models-block"><div class="field-label">参与模型 <span class="hint">未配置的模型不可生成</span></div><div id="model-list" class="model-list"><p class="hint">正在读取模型配置…</p></div></div>
+          <div class="controls-block">
+            <div class="two-col"><div class="field"><label for="size">统一尺寸</label><select id="size"><option value="1024x1024">1024 × 1024</option></select></div><div class="field"><label for="quality">生成质量 <span class="hint">仅 GPT</span></label><select id="quality"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="auto">Auto</option></select></div></div>
+            <div class="two-col"><div class="field"><label for="runs">重复轮数</label><input id="runs" type="number" min="1" max="10" step="1" value="1" required></div><div class="field"><label for="mode">执行方式</label><select id="mode"><option value="parallel">并行对比</option><option value="sequential">串行基准</option></select></div></div>
+            <p id="size-note" class="hint" style="margin-bottom:16px">尺寸仅列出所选模型共同支持的选项。</p>
+          </div>
+          <div class="launch-block"><button class="primary launch" id="start-button" type="submit" disabled><svg class="icon"><use href="#i-play"/></svg><span>开始对比</span></button><button class="launch" id="cancel-button" type="button" hidden>停止后续请求</button><div id="request-count" class="request-count">实际请求会产生模型调用费用</div><p id="cancel-note" class="hint" hidden style="margin-top:8px">已发出的请求仍会完成并可能计费；只停止尚未发出的请求。</p></div>
+          <div class="setup-footer hint">耗时含网络、图片传输与原图保存，不含鉴权、排队和归档副本写入。不同模型的质量档位不等价。<br><span class="mono">Ctrl / ⌘ + Enter</span> 开始新一轮</div>
+        </form>
+      </aside>
+      <section class="workspace" aria-label="图像对比结果">
+        <div class="workspace-head">
+          <div class="workspace-title"><h2>对比画布</h2><span id="job-status" class="badge">尚未开始</span></div>
+          <div class="tools"><button class="small" id="new-button">新实验</button><button class="small" id="reuse-button" disabled>复用本轮设置</button><button class="small" id="blind-button" aria-pressed="false"><svg class="icon"><use href="#i-eye"/></svg>盲评模式</button><a id="json-export" class="button small" aria-disabled="true">JSON</a><a id="csv-export" class="button small" aria-disabled="true">CSV</a></div>
+        </div>
+        <div id="blind-note" class="notice" hidden><strong>盲评已开启</strong> · 图像顺序已打乱，模型身份与速度暂时隐藏。关闭盲评后揭晓，评分不会丢失。</div>
+        <div class="panel run-line"><div id="run-meta" class="run-meta"><span>选择模型，输入提示词，然后开始一轮对比。</span></div><div class="round-picker"><label for="round" class="hint">查看轮次</label><select id="round" disabled><option value="1">第 1 轮</option></select></div></div>
+        <div id="progress" class="progress" hidden><span id="progress-fill"></span></div>
+        <div id="run-warning" class="notice" hidden></div>
+        <div id="result-grid" class="result-grid"></div>
+        <div id="future-note" class="future-note"><span class="provider-mark">G+</span><p><b>GPT Image 2.5</b> · 已保留扩展位，填入实际 endpoint 和部署名后才能加入。不会自动换成其他模型。</p><button class="small" id="configure-future">配置入口</button></div>
+        <div id="archive-note" class="notice notice-flex" style="margin-top:16px" hidden><div style="min-width:0;flex:1"><strong>本轮图片归档</strong><p id="archive-path" class="mono hint" style="overflow-wrap:anywhere;margin-top:4px"></p><p id="archive-info" class="hint" style="margin-top:4px"></p></div><div class="tools"><button id="archive-copy" class="small">复制路径</button><button id="archive-refresh" class="small">更新归档</button></div></div>
+        <section class="panel analysis" id="analysis">
+          <div class="analysis-top"><div><div class="eyebrow" style="margin-bottom:5px">02 / COMPARE</div><h2>速度与质量，一起衡量</h2></div><span id="timing-label" class="hint">端到端耗时 · 成功样本</span></div>
+          <div id="speed-chart"><p class="empty-note">生成完成后，这里会显示真实耗时和人工评分。</p></div>
+          <div class="table-wrap" id="summary-table"></div>
+          <p id="method-note" class="method-note">只统计当前实验的成功样本，不混合不同提示词或配置。人工评分未填写时保持为空，不生成虚构的质量分数。</p>
+          <details id="all-rounds" style="margin-top:16px"><summary>展开每一轮的明细</summary><div class="table-wrap" id="sample-table"></div></details>
+        </section>
+        <details id="run-details" class="panel run-details" hidden><summary>查看本轮提示词、配置快照与实际请求</summary><p id="run-prompt"></p><pre id="run-requests"></pre></details>
+        <footer class="footer"><span>LOCAL FIRST · 原图、耗时与评分均保存在本地</span><span>盲评是界面辅助，不是多用户双盲实验协议。</span></footer>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="history-dialog" aria-labelledby="history-title"><div class="dialog-header"><div><h2 id="history-title">实验历史</h2><p class="hint">包含原有 PowerShell 记录；不同计时口径分开保留。</p></div><button class="close" data-close="history-dialog" aria-label="关闭历史记录">×</button></div><div class="dialog-body"><div id="history-list"></div></div></dialog>
+
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <form id="settings-form">
+      <div class="dialog-header"><div><h2 id="settings-title">模型接入设置</h2><p class="hint">配置保存在 image-lab.config.json；不修改 Azure 资源或安全设置。</p></div><button type="button" class="close" data-close="settings-dialog" aria-label="关闭模型设置">×</button></div>
+      <div class="dialog-body"><div class="notice">默认沿用 <b>az login / Entra ID</b>。API Key 模式只填写服务端环境变量的名称，<b>不要在此粘贴密钥</b>。保存配置不代表远端部署已经验证。</div><div class="two-col"><div class="field"><label for="subscription">Azure Subscription ID</label><input id="subscription" class="mono" required></div><div class="field"><label for="resource-group">Resource Group</label><input id="resource-group" required></div></div><div id="settings-models"></div><p id="settings-error" class="settings-error" role="alert"></p></div>
+      <div class="dialog-footer"><span id="settings-active-note" class="hint"></span><button type="button" data-close="settings-dialog">取消</button><button id="save-settings" class="primary" type="submit">保存配置</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="rating-dialog" aria-labelledby="rating-title">
+    <form id="rating-form">
+      <div class="dialog-header"><h2 id="rating-title">人工质量评分</h2><button type="button" class="close" data-close="rating-dialog" aria-label="关闭评分窗口">×</button></div>
+      <div class="dialog-body"><div class="rating-intro"><img id="rating-thumb" class="rating-thumb" alt="待评分图像"><div><h3 id="rating-name"></h3><p class="hint">1 = 较差，5 = 优秀。未评或不适用的项目请留空。<br>同一次对比建议使用一致的评分标准。</p></div></div><div id="rating-fields"></div><div class="field"><label for="rating-notes">观察笔记</label><textarea id="rating-notes" maxlength="2000" style="min-height:90px" placeholder="例如：中文字形、物体关系、材质、细节问题…"></textarea></div><p id="rating-error" class="rating-error" role="alert"></p></div>
+      <div class="dialog-footer"><button id="clear-rating" type="button">清空评分</button><button type="button" data-close="rating-dialog">取消</button><button id="save-rating" type="submit" class="primary">保存评分</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="zoom-dialog" aria-labelledby="zoom-title">
+    <div class="dialog-header"><div><h2 id="zoom-title">查看原图</h2><p id="zoom-meta" class="hint"></p></div><button class="close" data-close="zoom-dialog" aria-label="关闭原图">×</button></div>
+    <div class="zoom-stage" id="zoom-stage"><img id="zoom-image" alt="生成原图"></div>
+    <div class="zoom-tools"><div class="zoom-slider"><label for="zoom-range">缩放</label><input id="zoom-range" type="range" min="10" max="200" step="1" value="100"><span id="zoom-value" class="mono">100%</span><button id="zoom-fit" class="small">适应窗口</button><button id="zoom-actual" class="small">原始大小</button></div><a id="zoom-download" class="button small"><svg class="icon"><use href="#i-download"/></svg>下载原图</a></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script>
+    "use strict";
+    const $ = id => document.getElementById(id);
+    const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]));
+    const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const statusNames = {queued:"已排队", preparing:"准备鉴权", running:"生成中", completed:"已完成", success:"已生成", failed:"失败", cancelled:"已停止", interrupted:"已中断", pending:"等待本轮"};
+    const terminal = new Set(["success","failed","cancelled","interrupted"]);
+    const active = new Set(["queued","preparing","running"]);
+    const seconds = ms => Number.isFinite(ms) ? (ms / 1000).toFixed(2) : "—";
+    const dateText = value => value ? new Date(value).toLocaleString("zh-CN", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}) : "—";
+    const bytesText = bytes => bytes > 0 ? (bytes / 1048576).toFixed(2) + " MB" : "—";
+    const imageURL = sample => sample?.image_url && /^\/images\/(?:[0-9a-f]{32}|legacy-[0-9a-f]{16})\/[0-9a-f]{16}\.(png|jpg)$/.test(sample.image_url) ? sample.image_url : null;
+    const criteria = [
+      ["adherence","提示词遵循","主体、数量、关系与指定内容是否准确"],
+      ["visual","视觉细节","材质、结构、纹理与真实感"],
+      ["composition","构图与美感","布局、光影、层次与整体观感"],
+      ["text","文字准确性","不含文字的图片可留空，不计入均分"]
+    ];
+    const presets = {
+      poster:"设计一张中文海报。主标题：‘春日读书会’。副标题：‘周末城市书展’。画面是明亮的书店橱窗、柔和阳光、绿色植物、桌上的书和咖啡，版式简洁高级，中文标题清晰居中，温暖自然的商业海报风格。",
+      product:"一张高端产品摄影：一只磨砂透明玻璃香水瓶放在浅色石材底座上，瓶身有清晰的「MORNING」文字，左侧自然光透过玻璃形成真实折射与阴影，背景是安静的米色工作室。近距离拍摄，材质真实，构图简洁，不添加其他文字。",
+      portrait:"一张自然光人像摄影：一位戴圆框眼镜的年轻成年女性坐在窗边阅读，手指自然地翻开书页，皮肤保留真实纹理，柔和侧光，背景有虚化的植物和书架。半身构图，真实摄影质感，不磨皮，不添加文字。",
+      composition:"一张真实的餐桌静物照片：画面左边是三个红苹果，右边是两个绿色梨，中间一只透明水杯，水杯后方是一张写着「GOOD MORNING」的白色卡片。一把银色勺子横放在水杯前方，桌面是深色木材。所有物体完整可见，数量和空间关系严格准确。"
+    };
+    const topics = {poster:"中文海报-春日读书会",product:"产品摄影-材质光影",portrait:"人像-皮肤细节",composition:"复杂场景-空间关系"};
+    const S = {config:null,csrf:"",history:[],selected:new Set(),job:null,activeId:null,round:1,blind:false,order:[],signature:"",connected:false,starting:false,pollTimer:null,pollBusy:false,viewToken:0,ratingTarget:null,zoomSample:null,healthBusy:false};
+    let toastTimer;
+    function toast(message) { $("toast").textContent = message; $("toast").hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 4500); }
+    function error(message, retry=false) { $("error-text").textContent = message; $("error-banner").hidden = false; $("retry-button").hidden = !retry; }
+    function connected(value) { S.connected = value; $("connection").classList.toggle("connected", value); $("connection-text").textContent = value ? "本地服务已连接" : "连接中断"; updateActions(); }
+    async function api(path, options={}) {
+      const headers = {...options.headers};
+      if (options.method && options.method !== "GET") { headers["Content-Type"] = "application/json"; headers["X-Image-Lab-Token"] = S.csrf; }
+      const response = await fetch(path, {...options,headers,cache:"no-store"});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      return data;
+    }
+    function score(rating) {
+      const values = criteria.map(([key]) => rating?.[key]).filter(value => Number.isInteger(value) && value >= 1 && value <= 5);
+      return values.length ? values.reduce((a,b) => a+b, 0) / values.length : null;
+    }
+    function shuffle(ids) {
+      const result = [...ids];
+      for (let i=result.length-1;i>0;i--) { const random = crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296; const j = Math.floor(random*(i+1)); [result[i],result[j]] = [result[j],result[i]]; }
+      return result;
+    }
+    function availableModels() { return S.config?.models.filter(model => model.configured) || []; }
+    function modelsForView() { return S.job ? S.job.models : (S.config?.models.filter(model => S.selected.has(model.id)) || []); }
+    function orderedModels() {
+      const models = modelsForView();
+      if (!S.blind) return models;
+      if (models.some(model => !S.order.includes(model.id)) || S.order.length !== models.length) S.order = shuffle(models.map(model => model.id));
+      return [...models].sort((a,b) => S.order.indexOf(a.id) - S.order.indexOf(b.id));
+    }
+    function modelLabel(modelId) {
+      const models = orderedModels();
+      return S.blind ? `图像 ${String.fromCharCode(65 + models.findIndex(model => model.id === modelId))}` : (models.find(model => model.id === modelId)?.name || modelId);
+    }
+    function syncModelInputs() {
+      $("model-list").innerHTML = (S.config?.models || []).map(model => `<label class="model-option ${model.configured ? "" : "unavailable"}">
+        <input type="checkbox" data-model="${esc(model.id)}" ${S.selected.has(model.id) ? "checked" : ""} ${model.configured ? "" : "disabled"} aria-label="选择 ${esc(model.name)}">
+        <span class="provider-mark">${model.provider === "mai" ? "M" : model.provider === "flux" ? "F" : model.id === "gpt-image-2-5" ? "G+" : "G"}</span>
+        <span class="model-text"><strong>${esc(model.name)}</strong><small>${model.configured ? "已配置 · " + esc(model.version || "版本未记录") : "待配置 · 暂不参与生成"}</small></span>
+      </label>`).join("");
+      $("ready-count").textContent = `${availableModels().length} / ${S.config?.models.length || 4}`;
+      updateSize();
+    }
+    function updateSize() {
+      const models = S.config?.models.filter(model => S.selected.has(model.id)) || [];
+      const sizes = models.length ? models[0].supported_sizes.filter(size => models.every(model => model.supported_sizes.includes(size))) : ["1024x1024"];
+      const previous = $("size").value;
+      $("size").innerHTML = sizes.map(size => `<option value="${esc(size)}">${esc(size.replace("x"," × "))}</option>`).join("");
+      $("size").value = sizes.includes(previous) ? previous : (sizes[0] || "");
+      $("quality").disabled = !models.some(model => model.provider === "gpt");
+      $("size-note").textContent = models.some(model => ["mai","flux"].includes(model.provider)) ? "MAI / FLUX 使用共同的 1024 × 1024 目标，返回的实际尺寸会单独记录。" : "尺寸仅列出所选模型共同支持的选项；质量档位仅作用于 GPT。";
+      updateActions();
+    }
+    function updateActions() {
+      const runs = Number($("runs").value);
+      $("start-button").disabled = !S.connected || S.starting || !!S.activeId || !S.selected.size || !$("size").value;
+      $("start-button").querySelector("span").textContent = S.starting ? "正在创建实验…" : S.activeId ? "实验进行中…" : "开始对比";
+      $("cancel-button").hidden = !S.activeId;
+      $("cancel-button").disabled = !!(S.job?.id === S.activeId && S.job.cancel_requested);
+      $("cancel-note").hidden = !S.activeId;
+      $("request-count").textContent = `${S.selected.size} 个模型 × ${Number.isInteger(runs) && runs>0 ? runs : "—"} 轮 = ${Number.isInteger(runs) && runs>0 ? S.selected.size*runs : "—"} 次实际请求 · 按服务计费`;
+      $("active-banner").hidden = !S.activeId || S.job?.id === S.activeId;
+      $("reuse-button").disabled = !S.job;
+      $("history-button").disabled = !S.config;
+      $("settings-button").disabled = !S.config;
+      $("configure-future").disabled = !S.config;
+      $("save-settings").disabled = !!S.activeId;
+      $("settings-active-note").textContent = S.activeId ? "请等待当前实验完成后修改接入配置。" : "";
+      for (const format of ["json","csv"]) {
+        const link = $(format+"-export");
+        const allowed = !!S.job && !S.blind;
+        link.setAttribute("aria-disabled", String(!allowed));
+        if (allowed) link.href = `/api/jobs/${encodeURIComponent(S.job.id)}/export.${format}`; else link.removeAttribute("href");
+        link.title = S.blind ? "请先关闭盲评再导出，导出内容包含模型身份。" : "内部诊断导出，可能包含部署名和 endpoint。对外分享优先使用去掉连接字段的图片归档，并人工审核图像、提示词和备注。";
+      }
+    }
+    function adoptJob(job) {
+      if (S.job?.id === job.id && Date.parse(job.updated_at) < Date.parse(S.job.updated_at)) return;
+      if (S.job?.id !== job.id) { S.round = 1; S.order = []; }
+      S.job = job;
+      render();
+    }
+    async function loadJob(id) {
+      const token = ++S.viewToken;
+      try { const job = await api(`/api/jobs/${encodeURIComponent(id)}`); if (token === S.viewToken) adoptJob(job); }
+      catch (err) { error("无法打开实验：" + err.message); }
+    }
+    async function bootstrap(initial=false) {
+      try {
+        const boot = await api("/api/bootstrap");
+        S.csrf = boot.csrf_token; S.config = boot.config; S.history = boot.history; S.activeId = boot.active_job_id;
+        S.selected = new Set(initial ? availableModels().map(model => model.id) : [...S.selected].filter(id => availableModels().some(model => model.id === id)));
+        connected(true); syncModelInputs(); renderHistory();
+        $("error-banner").hidden = true;
+        if (boot.warnings?.length) error(boot.warnings.join(" · "));
+        if (initial && (S.activeId || S.history[0]?.id)) await loadJob(S.activeId || S.history[0].id);
+        else render();
+        if (S.activeId) schedulePoll();
+      } catch (err) { connected(false); error("无法连接本地服务。请运行 .\\start-image-lab.ps1，然后重新连接。 " + err.message, true); }
+    }
+    function schedulePoll(delay=1000) { clearTimeout(S.pollTimer); if (S.activeId) S.pollTimer = setTimeout(poll, delay); }
+    async function poll() {
+      if (!S.activeId || S.pollBusy) return;
+      const id = S.activeId; S.pollBusy = true;
+      try {
+        const job = await api(`/api/jobs/${encodeURIComponent(id)}`); connected(true);
+        if (S.job?.id === id) adoptJob(job);
+        if (!active.has(job.status)) {
+          S.activeId = null; updateActions(); await bootstrap(false);
+          toast(job.status === "completed" ? "本轮结果已保存，可放大查看并评分。" : "实验已结束，失败或中断原因保留在结果中。");
+        }
+      } catch (err) { connected(false); error("暂时无法读取生成进度，将尝试重新连接；不会重复发送生图请求。 " + err.message, true); }
+      finally { S.pollBusy = false; schedulePoll(S.connected ? 1000 : 4000); }
+    }
+    function render() {
+      const job = S.job;
+      $("job-status").textContent = job ? statusNames[job.status] || job.status : "尚未开始";
+      $("job-status").className = "badge " + (job?.status === "completed" ? "success" : job?.status === "failed" ? "danger" : active.has(job?.status) ? "accent" : "");
+      $("blind-button").setAttribute("aria-pressed", String(S.blind));
+      $("blind-button").classList.toggle("primary", S.blind); $("blind-note").hidden = !S.blind;
+      const rounds = job?.runs || 1; S.round = Math.min(S.round, rounds);
+      $("round").innerHTML = Array.from({length:rounds},(_,i) => `<option value="${i+1}">第 ${i+1} 轮</option>`).join("");
+      $("round").value = String(S.round); $("round").disabled = rounds <= 1;
+      $("run-meta").innerHTML = job ? `<span>${esc(dateText(job.created_at))}</span><span>${esc(job.topic || "主题未记录")}</span><span>${esc(job.size === "unknown" ? "尺寸未记录" : job.size === "mixed" ? "原记录尺寸不一致" : job.size.replace("x"," × "))}</span><span>${job.mode === "parallel" ? "并行" : "串行"} · ${job.model_ids.length} 模型 · ${job.runs} 轮</span><span>${job.source === "legacy" ? "原脚本记录 · API 响应耗时" : `已完成 ${job.progress.done} / ${job.progress.total} 请求`}</span>` : "<span>选择模型，输入提示词，然后开始一轮对比。</span>";
+      $("progress").hidden = !job || !active.has(job.status);
+      $("progress-fill").style.width = job?.progress.total ? `${job.progress.done/job.progress.total*100}%` : "0%";
+      const warnings = job?.warnings || [];
+      $("run-warning").hidden = !warnings.length || S.blind;
+      $("run-warning").innerHTML = warnings.length ? `<details><summary>本轮有 ${warnings.length} 条记录说明${job.source === "legacy" ? " · 旧计时口径不能与新实验混用" : ""}</summary><ul>${warnings.map(message => `<li>${esc(message)}</li>`).join("")}</ul></details>` : "";
+      const signature = JSON.stringify([job?.id,job?.updated_at,S.round,S.blind,S.order,[...S.selected]]);
+      if (signature !== S.signature) { renderCards(); S.signature = JSON.stringify([job?.id,job?.updated_at,S.round,S.blind,S.order,[...S.selected]]); }
+      renderSummary();
+      renderArchive();
+      $("future-note").hidden = !!S.config?.models.find(model => model.id === "gpt-image-2-5")?.configured || S.blind;
+      $("run-details").hidden = !job || S.blind;
+      if (job && !S.blind) {
+        $("run-prompt").textContent = job.prompt || "原始提示词未记录，不能根据图片反推为某个提示词。";
+        $("run-requests").textContent = JSON.stringify({
+          topic:job.topic || "", requested_size:job.size, gpt_quality:job.gpt_quality, mode:job.mode, timing_scope:job.timing_scope,
+          models:job.models.map(model => ({name:model.name,deployment:model.deployment,version:model.version || "unknown",endpoint:model.endpoint})),
+          requests:job.samples.filter(sample => sample.round === S.round).map(sample => ({model_id:sample.model_id,body:sample.request,revised_prompt:sample.revised_prompt || null}))
+        }, null, 2);
+      }
+      function archivePath() {
+        const archive = S.job?.archive;
+        return archive?.status === "ready" ? `.\\${archive.root_name}\\${archive.relative_dir}` : "";
+      }
+      function renderArchive() {
+        const job = S.job, archive = job?.archive;
+        $("archive-note").hidden = !job || S.blind;
+        $("archive-note").classList.toggle("error", archive?.status === "failed");
+        $("archive-copy").disabled = !archivePath();
+        $("archive-refresh").disabled = !job || active.has(job.status);
+        if (!job) return;
+        $("archive-path").textContent = archivePath() || (active.has(job.status) ? "本轮结束后自动整理到 image-lab-archive 文件夹。" : "该记录尚未完成归档。");
+        $("archive-info").textContent = archive?.status === "failed" ? archive.error :
+          archive?.status === "ready" ? `${archive.image_count} 张原图 / ${archive.sample_count} 条样本记录。每张图配有模型、主题、完整提示词、耗时和评分备注。${archive.missing_images ? " 有 " + archive.missing_images + " 张历史图片已缺失，已明确标注。" : ""} 分享前请审核图像与提示词的隐私。` :
+          "归档不会重新生图。失败或被旧脚本覆盖的图片只保留备注，不伪造替代图片。";
+      }
+      updateActions(); tickClocks();
+    }
+    function renderCards() {
+      const models = orderedModels(), samples = S.job?.samples.filter(sample => sample.round === S.round) || [];
+      const successes = samples.filter(sample => sample.status === "success" && Number.isFinite(sample.elapsed_ms));
+      const best = samples.length && samples.every(sample => terminal.has(sample.status)) && successes.length > 1 ? Math.min(...successes.map(sample => sample.elapsed_ms)) : null;
+      $("result-grid").style.setProperty("--columns", models.length > 3 ? "2" : String(Math.max(1, models.length)));
+      if (!models.length) { $("result-grid").innerHTML = '<div class="panel empty-note">请先选择至少一个已配置的模型。</div>'; return; }
+      $("result-grid").innerHTML = models.map((model,index) => {
+        const sample = samples.find(row => row.model_id === model.id), label = modelLabel(model.id), url = imageURL(sample);
+        const rating = score(sample?.rating), fastest = !S.blind && best !== null && sample?.elapsed_ms === best && sample.status === "success";
+        let image;
+        if (url) image = `<button class="image-button" data-action="zoom" data-sample="${sample.id}" aria-label="放大 ${esc(label)} 的第 ${S.round} 轮原图"><img src="${esc(url)}" alt="${esc(label)} · 第 ${S.round} 轮生成图" loading="eager"></button><span class="image-overlay">${icon("zoom")}查看原图</span>`;
+        else {
+          const waiting = sample && ["running","preparing"].includes(sample.status);
+          const title = sample ? (sample.status === "success" ? "原图不可用" : statusNames[sample.status] || sample.status) : "等待你的第一个灵感";
+          image = `<div class="placeholder">${waiting ? '<span class="spinner" aria-hidden="true"></span>' : icon("image")}<span>${esc(title)}</span>${sample?.error ? `<p class="error-detail">${S.blind ? "关闭盲评后可查看具体错误。" : esc(sample.error)}</p>` : `<p class="hint">${sample ? "图片会在生成并保存后显示。" : "完成生成后在这里并排对比"}</p>`}</div>`;
+        }
+        const time = S.blind ? '<span class="metric-value">隐藏</span>' : sample?.status === "running" && sample.started_at ? `<span class="metric-value"><span data-clock="${esc(sample.started_at)}">0.0</span><small>s</small></span>` : `<span class="metric-value">${seconds(sample?.elapsed_ms)}<small>s</small></span>`;
+        return `<article class="panel result-card ${fastest ? "fastest" : ""}">
+          <div class="card-heading"><span class="provider-mark">${S.blind ? String.fromCharCode(65+index) : model.provider === "mai" ? "M" : model.provider === "flux" ? "F" : "G"}</span><div class="card-name"><h3>${esc(label)}</h3><p>${S.blind ? `匿名样本 · 第 ${S.round} 轮` : esc(model.deployment || "待配置")}</p></div>${fastest ? '<span class="badge accent">本轮最快</span>' : sample ? `<span class="badge ${sample.status === "failed" ? "danger" : ""}">${esc(statusNames[sample.status] || sample.status)}</span>` : ""}</div>
+          <div class="image-area">${image}</div>
+          <div class="card-info"><div class="card-metrics"><div><span class="metric-label">${sample?.status === "failed" ? "失败前耗时" : S.job?.source === "legacy" ? "API 响应耗时" : "端到端耗时"}</span>${time}</div><div><span class="metric-label">人工质量评分</span><span class="metric-value">${rating === null ? "—" : rating.toFixed(1)}<small>/ 5</small></span></div></div>
+          <div class="card-bottom"><span class="hint">${sample?.width ? `${sample.width} × ${sample.height}<br>${bytesText(sample.output_bytes)}` : "原图 / 不裁剪"}</span><button class="small" data-action="rate" data-sample="${sample?.id || ""}" ${url && sample.status === "success" ? "" : "disabled"}>${rating === null ? "评价画质" : "编辑评分"}</button></div>
+          ${sample?.warnings?.length && !S.blind ? `<p class="card-warning">${esc(sample.warnings.join(" "))}</p>` : ""}</div></article>`;
+      }).join("");
+      $("result-grid").querySelectorAll("img").forEach(img => img.addEventListener("error", () => {
+        const area = img.closest(".image-area"); area.replaceChildren();
+        const note = document.createElement("p"); note.className = "placeholder"; note.textContent = "图片文件无法读取，请查看本地结果目录。"; area.append(note);
+      }, {once:true}));
+    }
+    function renderSummary() {
+      const job = S.job;
+      if (!job || S.blind) {
+        $("speed-chart").innerHTML = `<p class="empty-note">${S.blind ? "速度与模型排名已隐藏。先评价图像，再关闭盲评揭晓结果。" : "生成完成后，这里会显示真实耗时和人工评分。"}</p>`;
+        $("summary-table").replaceChildren(); $("sample-table").replaceChildren(); $("all-rounds").hidden = true;
+        $("method-note").textContent = "人工评分未填写时保持为空；文字等不适用项目不计入均分。"; return;
+      }
+      const stats = job.summary, valid = stats.filter(row => Number.isFinite(row.mean_ms));
+      const max = valid.length ? Math.max(...valid.map(row => row.mean_ms)) : 1, min = valid.length ? Math.min(...valid.map(row => row.mean_ms)) : null;
+      $("timing-label").textContent = job.source === "legacy" ? "旧口径：API 响应耗时" : "端到端耗时 · 成功样本";
+      $("speed-chart").innerHTML = stats.map(row => `<div class="speed-row"><span>${esc(modelLabel(row.model_id))}</span><div class="bar-track">${Number.isFinite(row.mean_ms) ? `<div class="bar-fill ${row.mean_ms === min ? "best" : ""}" style="width:${max > 0 ? Math.max(1,row.mean_ms/max*100) : 1}%"></div>` : ""}</div><span class="speed-value mono">${seconds(row.mean_ms)} s</span><span class="hint run-count">${row.successes} 张成功</span></div>`).join("");
+      $("summary-table").innerHTML = `<table><thead><tr><th>模型</th><th>均值</th><th>P50</th><th>P95</th><th>成功 / 总数</th><th>人工均分</th></tr></thead><tbody>${stats.map(row => `<tr><td>${esc(modelLabel(row.model_id))}</td><td>${seconds(row.mean_ms)} s</td><td>${seconds(row.median_ms)} s</td><td>${seconds(row.p95_ms)} s</td><td>${row.successes} / ${job.samples.filter(sample => sample.model_id === row.model_id).length}${row.failures ? ` · ${row.failures} 失败` : ""}</td><td>${Number.isFinite(row.rating_mean) ? row.rating_mean.toFixed(2) + " / 5" : "尚未评分"} <span class="hint">(${row.rated_count} 张)</span></td></tr>`).join("")}</tbody></table>`;
+      $("method-note").textContent = (job.source === "legacy" ? "旧脚本计时不含解码和保存，不能直接与新实验的端到端耗时混比。 " : "端到端耗时包含网络、图片传输、解码与原图保存，不含鉴权、排队和归档副本写入；并非纯模型推理时间。 ") + "均值 / P50 / P95 只使用当前实验的成功样本。" + (stats.some(row => row.successes < 5) ? " 样本不足 5 张，尤其 P95 仅作描述性参考，不能据此推断稳定排名。" : "") + " 人工均分只包含已评图片的已评项目。";
+      $("all-rounds").hidden = false;
+      $("sample-table").innerHTML = `<table><thead><tr><th>轮次</th><th>模型</th><th>状态</th><th>耗时</th><th>实际尺寸</th><th>评分</th></tr></thead><tbody>${job.samples.map(sample => `<tr><td>${sample.round}</td><td>${esc(modelLabel(sample.model_id))}</td><td title="${esc(sample.error || "")}">${esc(statusNames[sample.status] || sample.status)}</td><td>${seconds(sample.elapsed_ms)} s</td><td>${sample.width ? `${sample.width} × ${sample.height}` : "—"}</td><td>${score(sample.rating)?.toFixed(1) || "—"}</td></tr>`).join("")}</tbody></table>`;
+    }
+    function tickClocks() {
+      document.querySelectorAll("[data-clock]").forEach(element => { const since = Date.parse(element.dataset.clock); if (Number.isFinite(since)) element.textContent = Math.max(0,(Date.now()-since)/1000).toFixed(1); });
+    }
+    function renderHistory() {
+      $("history-list").innerHTML = S.history.length ? S.history.map(job => `<button class="history-row ${job.id === S.job?.id ? "selected" : ""}" data-open="${esc(job.id)}"><span class="history-copy"><span class="history-meta">${esc(dateText(job.created_at))} · ${job.source === "legacy" ? "原有记录 / API 口径" : "新实验 / 端到端"}${job.topic ? " · " + esc(job.topic) : ""}</span><span class="history-prompt">${esc(job.prompt || "原提示词未记录")}</span><span class="history-meta">${job.model_ids.length} 模型 · ${job.runs} 轮 · ${job.completed}/${job.total} 完成 · ${job.ratings_count} 张已评</span></span><span class="badge ${job.status === "completed" ? "success" : job.status === "failed" ? "danger" : ""}">${esc(statusNames[job.status] || job.status)}</span></button>`).join("") : '<p class="empty-note">还没有保存的实验。</p>';
+    }
+    function openSettings(focusId) {
+      if (!S.config) return;
+      $("subscription").value = S.config.subscription_id; $("resource-group").value = S.config.resource_group; $("settings-error").textContent = "";
+      $("settings-models").innerHTML = S.config.models.map((model,index) => `<details class="settings-model" data-config-model="${esc(model.id)}" ${model.id === focusId || (!focusId && index === 0) ? "open" : ""}><summary>${esc(model.name)} <span class="badge ${model.configured ? "success" : ""}">${model.configured ? "已配置" : "待配置"}</span></summary>
+        <div class="field"><label for="endpoint-${index}">完整生成 Endpoint（HTTPS）</label><input id="endpoint-${index}" data-field="endpoint" type="url" value="${esc(model.endpoint)}" placeholder="https://..."></div>
+        <div class="two-col"><div class="field"><label for="deployment-${index}">部署名 / Model ID</label><input id="deployment-${index}" data-field="deployment" value="${esc(model.deployment)}" maxlength="128"></div><div class="field"><label for="version-${index}">版本标记（未知可留空）</label><input id="version-${index}" data-field="version" value="${esc(model.version)}" maxlength="80"></div></div>
+        <div class="two-col"><div class="field"><label for="auth-${index}">鉴权方式</label><select id="auth-${index}" data-field="auth_mode"><option value="azure_cli" ${model.auth_mode === "azure_cli" ? "selected" : ""}>Azure CLI / Entra ID</option><option value="api_key_env" ${model.auth_mode === "api_key_env" ? "selected" : ""}>服务端环境变量 API Key</option></select></div><div class="field"><label for="header-${index}">API Key 请求头</label><select id="header-${index}" data-field="api_key_header"><option value="api-key" ${model.api_key_header === "api-key" ? "selected" : ""}>api-key（Azure Images / MAI）</option><option value="Authorization" ${model.api_key_header === "Authorization" ? "selected" : ""}>Authorization（BFL / OpenAI）</option></select></div></div>
+        <div class="field"><label for="env-${index}">环境变量名称（不是密钥）</label><input id="env-${index}" data-field="api_key_env" value="${esc(model.api_key_env)}" pattern="[A-Za-z_][A-Za-z0-9_]*" placeholder="例如 GPT_IMAGE_2_5_API_KEY" autocomplete="off"><p class="hint" style="margin-top:6px">环境变量在启动服务的终端中设置，修改后需重启服务。</p></div>
+        <label class="check-label"><input type="checkbox" data-field="enabled" ${model.enabled ? "checked" : ""}>启用此模型</label>
+        ${model.id === "gpt-image-2-5" ? '<p class="hint" style="margin-top:10px">这是待接入的用户预留位，不代表远端已提供 GPT Image 2.5。需要实际可用、兼容同步 GPT Images API 的部署。</p>' : model.provider === "flux" ? '<p class="hint" style="margin-top:10px">当前使用 BFL 原生 /providers/blackforestlabs/v1/flux-kontext-pro 路由；也接受资源支持的 FLUX Images API。</p>' : ""}
+      </details>`).join("");
+      updateActions(); $("settings-dialog").showModal();
+    }
+    function findSample(id) { return S.job?.samples.find(sample => sample.id === id); }
+    function openRating(id) {
+      const sample = findSample(id); if (!sample || !imageURL(sample) || sample.status !== "success") return;
+      S.ratingTarget = {jobId:S.job.id,sampleId:id}; $("rating-name").textContent = modelLabel(sample.model_id) + " · 第 " + sample.round + " 轮";
+      $("rating-thumb").src = imageURL(sample); $("rating-thumb").alt = modelLabel(sample.model_id) + " 的待评图像";
+      $("rating-fields").innerHTML = criteria.map(([key,label,description]) => `<div class="rating-row"><label for="rating-${key}">${label}<small>${description}</small></label><select id="rating-${key}" data-rating="${key}"><option value="">未评 / 不适用</option>${[1,2,3,4,5].map(value => `<option value="${value}" ${sample.rating?.[key] === value ? "selected" : ""}>${value} / 5</option>`).join("")}</select></div>`).join("");
+      $("rating-notes").value = sample.rating?.notes || ""; $("rating-error").textContent = ""; $("rating-dialog").showModal();
+    }
+    function setZoom(value) {
+      if (!S.zoomSample) return;
+      const zoom = Math.max(10,Math.min(200,Math.round(value))); $("zoom-range").value = String(zoom); $("zoom-value").textContent = zoom + "%";
+      $("zoom-image").style.width = S.zoomSample.width * zoom / 100 + "px"; $("zoom-image").style.height = S.zoomSample.height * zoom / 100 + "px";
+    }
+    function fitZoom() { if (S.zoomSample) setZoom(Math.min(($("zoom-stage").clientWidth-24)/S.zoomSample.width,($("zoom-stage").clientHeight-24)/S.zoomSample.height)*100); }
+    function openZoom(id) {
+      const sample = findSample(id); if (!sample || !imageURL(sample)) return;
+      S.zoomSample = sample; const label = modelLabel(sample.model_id);
+      $("zoom-title").textContent = label + " · 第 " + sample.round + " 轮";
+      $("zoom-meta").textContent = `${sample.width} × ${sample.height} · ${bytesText(sample.output_bytes)}${S.blind ? " · 身份与耗时已隐藏" : " · " + seconds(sample.elapsed_ms) + " s"}`;
+      $("zoom-image").alt = label + " 的原始图像"; $("zoom-image").onload = fitZoom;
+      $("zoom-image").src = imageURL(sample); $("zoom-download").href = imageURL(sample);
+      $("zoom-download").download = `${S.blind ? "blind-image" : sample.model_id}-round-${sample.round}.${sample.filename?.endsWith(".jpg") ? "jpg" : "png"}`;
+      $("zoom-dialog").showModal(); requestAnimationFrame(fitZoom);
+    }
+    $("prompt").value = presets.poster;
+    $("topic").value = topics.poster;
+    $("prompt-count").textContent = $("prompt").value.length + " / 4000";
+    $("prompt").addEventListener("input", () => $("prompt-count").textContent = $("prompt").value.length + " / 4000");
+    $("preset").addEventListener("change", () => { $("prompt").value = presets[$("preset").value]; $("topic").value = topics[$("preset").value]; $("prompt").dispatchEvent(new Event("input")); });
+    $("model-list").addEventListener("change", event => { const id = event.target.dataset.model; if (!id) return; if (event.target.checked) S.selected.add(id); else S.selected.delete(id); updateSize(); if (!S.job) render(); });
+    $("runs").addEventListener("input", updateActions);
+    $("model-list").addEventListener("click", event => { const row = event.target.closest(".unavailable"); if (row && !event.target.matches("input")) openSettings(row.querySelector("[data-model]").dataset.model); });
+    $("experiment-form").addEventListener("submit", async event => {
+      event.preventDefault(); if (!event.currentTarget.reportValidity() || S.activeId || S.starting) return;
+      const prompt = $("prompt").value.trim(); if (!prompt || !S.selected.size) { error("请填写提示词并选择至少一个已配置模型。"); return; }
+      S.starting = true; updateActions(); $("error-banner").hidden = true;
+      try {
+        const job = await api("/api/jobs",{method:"POST",body:JSON.stringify({prompt,topic:$("topic").value.trim(),model_ids:[...S.selected],size:$("size").value,gpt_quality:$("quality").value,runs:Number($("runs").value),mode:$("mode").value})});
+        ++S.viewToken; S.activeId = job.id; adoptJob(job); schedulePoll(250); toast("实验已创建，结果会陆续出现在画布中。");
+      } catch (err) { error("无法开始实验：" + err.message); }
+      finally { S.starting = false; updateActions(); }
+    });
+    $("cancel-button").addEventListener("click", async () => {
+      if (!S.activeId) return; $("cancel-button").disabled = true;
+      try { const job = await api(`/api/jobs/${S.activeId}/cancel`,{method:"POST",body:"{}"}); if (S.job?.id === job.id) adoptJob(job); toast("已请求停止后续调用；正在生成的请求会继续完成。"); }
+      catch (err) { error("无法停止后续请求：" + err.message); updateActions(); }
+    });
+    $("new-button").addEventListener("click", () => { ++S.viewToken; S.job = null; S.round = 1; S.order = []; S.signature = ""; render(); $("prompt").focus(); });
+    $("reuse-button").addEventListener("click", () => {
+      const job = S.job; if (!job) return; if (!job.prompt) { error("这份旧记录没有提示词，无法复用未知内容。"); return; }
+      $("prompt").value = job.prompt; $("prompt").dispatchEvent(new Event("input"));
+      $("topic").value = job.topic || "";
+      S.selected = new Set(job.model_ids.filter(id => availableModels().some(model => model.id === id)));
+      $("runs").value = String(Math.min(10,job.runs)); $("mode").value = job.mode;
+      if (["low","medium","high","auto"].includes(job.gpt_quality)) $("quality").value = job.gpt_quality;
+      syncModelInputs(); if ([...$("size").options].some(option => option.value === job.size)) $("size").value = job.size;
+      updateActions(); toast("设置已复制到左侧；现有结果不变。点击开始对比才会发送新请求。");
+    });
+    $("blind-button").addEventListener("click", () => { S.blind = !S.blind; if (S.blind) S.order = shuffle(modelsForView().map(model => model.id)); S.signature = ""; render(); });
+    $("round").addEventListener("change", () => { S.round = Number($("round").value); render(); });
+    $("result-grid").addEventListener("click", event => { const button = event.target.closest("[data-action]"); if (!button || button.disabled) return; if (button.dataset.action === "zoom") openZoom(button.dataset.sample); if (button.dataset.action === "rate") openRating(button.dataset.sample); });
+    $("history-button").addEventListener("click", async () => { try { const boot = await api("/api/bootstrap"); S.history = boot.history; renderHistory(); $("history-dialog").showModal(); } catch (err) { error("无法读取历史：" + err.message); } });
+    $("history-list").addEventListener("click", event => { const button = event.target.closest("[data-open]"); if (button) { $("history-dialog").close(); loadJob(button.dataset.open); } });
+    $("return-active").addEventListener("click", () => { if (S.activeId) loadJob(S.activeId); });
+    $("archive-copy").addEventListener("click", async () => {
+      const path = archivePath(); if (!path) return;
+      try { await navigator.clipboard.writeText(path); toast("已复制项目目录下的相对归档路径。"); }
+      catch (err) { error("无法访问剪贴板，请手动选择归档路径复制。 " + err.message); }
+    });
+    $("archive-refresh").addEventListener("click", async () => {
+      const id = S.job?.id; if (!id) return;
+      $("archive-refresh").disabled = true;
+      try { const job = await api(`/api/jobs/${id}/archive`, {method:"POST",body:"{}"}); if (S.job?.id === id) adoptJob(job); if (job.archive?.status === "ready") toast("图片和备注已重新整理，没有发送生图请求。"); else error(job.archive?.error || "归档未完成，请查看服务端日志。"); }
+      catch (err) { error("无法更新归档：" + err.message); }
+      finally { renderArchive(); }
+    });
+    $("settings-button").addEventListener("click", () => openSettings());
+    $("configure-future").addEventListener("click", () => openSettings("gpt-image-2-5"));
+    $("settings-form").addEventListener("submit", async event => {
+      event.preventDefault(); if (!event.currentTarget.reportValidity() || S.activeId) return;
+      const payload = structuredClone(S.config); payload.subscription_id = $("subscription").value.trim(); payload.resource_group = $("resource-group").value.trim();
+      for (const section of $("settings-models").querySelectorAll("[data-config-model]")) {
+        const model = payload.models.find(item => item.id === section.dataset.configModel), previous = {...model};
+        section.querySelectorAll("[data-field]").forEach(input => { model[input.dataset.field] = input.type === "checkbox" ? input.checked : input.value.trim(); });
+        if ((model.endpoint !== previous.endpoint || model.deployment !== previous.deployment) && model.version === previous.version) model.version = "";
+      }
+      $("save-settings").disabled = true; $("settings-error").textContent = "";
+      try {
+        S.config = await api("/api/config",{method:"PUT",body:JSON.stringify(payload)});
+        S.selected = new Set([...S.selected].filter(id => availableModels().some(model => model.id === id)));
+        syncModelInputs(); S.signature = ""; render(); $("settings-dialog").close();
+        toast("配置已保存。远端可用性以实际调用为准；变更部署后旧版本标记会清空。");
+      } catch (err) { $("settings-error").textContent = err.message; }
+      finally { updateActions(); }
+    });
+    $("rating-form").addEventListener("submit", async event => {
+      event.preventDefault(); if (!S.ratingTarget || !event.currentTarget.reportValidity()) return;
+      const target = {...S.ratingTarget}, rating = {notes:$("rating-notes").value};
+      for (const [key] of criteria) rating[key] = $("rating-"+key).value ? Number($("rating-"+key).value) : null;
+      $("save-rating").disabled = true; $("rating-error").textContent = "";
+      try {
+        const job = await api(`/api/jobs/${target.jobId}/samples/${target.sampleId}/rating`,{method:"PUT",body:JSON.stringify(rating)});
+        if (S.job?.id === target.jobId) adoptJob(job); $("rating-dialog").close(); toast("评分和笔记已保存到本地实验记录。");
+      } catch (err) { $("rating-error").textContent = err.message; }
+      finally { $("save-rating").disabled = false; }
+    });
+    $("clear-rating").addEventListener("click", () => { criteria.forEach(([key]) => $("rating-"+key).value = ""); $("rating-notes").value = ""; });
+    $("zoom-range").addEventListener("input", event => setZoom(Number(event.target.value)));
+    $("zoom-fit").addEventListener("click", fitZoom); $("zoom-actual").addEventListener("click", () => setZoom(100));
+    document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => $(button.dataset.close).close()));
+    document.querySelectorAll('a[aria-disabled]').forEach(link => link.addEventListener("click", event => { if (link.getAttribute("aria-disabled") === "true") event.preventDefault(); }));
+    $("theme-button").addEventListener("click", () => document.documentElement.setAttribute("data-theme", document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+    $("dismiss-error").addEventListener("click", () => $("error-banner").hidden = true);
+    $("retry-button").addEventListener("click", () => bootstrap(!S.config));
+    document.addEventListener("keydown", event => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !document.querySelector("dialog[open]") && !$("start-button").disabled) { event.preventDefault(); $("experiment-form").requestSubmit(); } });
+    setInterval(tickClocks, 500);
+    setInterval(async () => {
+      if (!S.config || S.activeId || S.healthBusy) return;
+      S.healthBusy = true;
+      try { const health = await api("/api/health"); connected(true); if (health.active_job_id) { S.activeId = health.active_job_id; updateActions(); schedulePoll(); } }
+      catch (err) { connected(false); error("本地服务连接中断，历史图片仍保存在磁盘。 " + err.message, true); }
+      finally { S.healthBusy = false; }
+    }, 15000);
+    if (location.protocol === "file:") { connected(false); error("这是需要本地后端的工作台。请在项目文件夹运行 .\\start-image-lab.ps1，然后打开 http://127.0.0.1:8765。"); }
+    else bootstrap(true);
+  </script>
+</body>
+</html>

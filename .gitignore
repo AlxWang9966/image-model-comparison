@@ -1,0 +1,28 @@
+# Keep the public repository on an explicit allowlist.
+# Existing personal scripts, Azure resource files, and raw results stay local.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/LICENSE
+!/image-lab.html
+!/image-lab.config.example.json
+!/start-image-lab.ps1
+!/image_lab/
+!/tests/
+!/examples/
+!/docs/
+
+# Never track local credentials, caches, or generated runtime files.
+**/__pycache__/
+*.py[cod]
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+*.log
+*.lock
+.DS_Store
+Thumbs.db

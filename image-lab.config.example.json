@@ -1,0 +1,59 @@
+{
+  "subscription_id": "00000000-0000-0000-0000-000000000000",
+  "resource_group": "your-resource-group",
+  "request_timeout_seconds": 300,
+  "models": [
+    {
+      "id": "mai-image-2-5",
+      "name": "MAI Image 2.5",
+      "provider": "mai",
+      "deployment": "MAI-Image-2.5",
+      "endpoint": "",
+      "auth_mode": "azure_cli",
+      "api_key_env": "",
+      "api_key_header": "api-key",
+      "version": "",
+      "supported_sizes": ["1024x1024"],
+      "enabled": false
+    },
+    {
+      "id": "gpt-image-2",
+      "name": "GPT Image 2",
+      "provider": "gpt",
+      "deployment": "gpt-image-2",
+      "endpoint": "",
+      "auth_mode": "azure_cli",
+      "api_key_env": "",
+      "api_key_header": "api-key",
+      "version": "",
+      "supported_sizes": ["1024x1024", "1536x1024", "1024x1536"],
+      "enabled": false
+    },
+    {
+      "id": "gpt-image-2-5",
+      "name": "GPT Image 2.5",
+      "provider": "gpt",
+      "deployment": "",
+      "endpoint": "",
+      "auth_mode": "azure_cli",
+      "api_key_env": "GPT_IMAGE_2_5_API_KEY",
+      "api_key_header": "api-key",
+      "version": "",
+      "supported_sizes": ["1024x1024"],
+      "enabled": false
+    },
+    {
+      "id": "flux-1-kontext-pro",
+      "name": "FLUX.1 Kontext Pro",
+      "provider": "flux",
+      "deployment": "FLUX.1-Kontext-pro",
+      "endpoint": "",
+      "auth_mode": "azure_cli",
+      "api_key_env": "",
+      "api_key_header": "Authorization",
+      "version": "",
+      "supported_sizes": ["1024x1024"],
+      "enabled": false
+    }
+  ]
+}
