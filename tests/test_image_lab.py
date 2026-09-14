@@ -23,7 +23,7 @@ from image_lab.providers import (
     TranslationConfig, ValidationError, build_request, generate, image_info,
 )
 from image_lab.server import Application, ConflictError, LocalServer, export_csv, parse_job_input
-from image_lab.store import RunStore, summarize, validate_rating, write_json_atomic
+from image_lab.store import RunStore, filter_job, summarize, validate_rating, write_json_atomic
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,6 +47,7 @@ def config_data():
         "flux-1-kontext-pro": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-kontext-pro?api-version=preview",
         "flux-2-pro": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-2-pro?api-version=preview",
         "flux-2-flex": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-2-flex?api-version=preview",
+        "gpt-image-2-5-sunburst": "https://example.openai.azure.com/openai/deployments/gpt-image-2.5-sunburst/images/generations?api-version=2025-04-01-preview",
     }
     for model in data["models"]:
         if model["id"] != "gpt-image-2-5":
@@ -77,7 +78,7 @@ class ProviderTests(unittest.TestCase):
         cli.start()
         self.addCleanup(cli.stop)
         self.config = AppConfig.parse(config_data())
-        self.mai, self.gpt, self.future, self.flux, self.flux_pro, self.flux_flex = self.config.models
+        self.mai, self.gpt, self.future, self.flux, self.flux_pro, self.flux_flex, self.sunburst = self.config.models
 
     def test_flux_two_requests_use_native_dimensions_and_record_flex_controls(self):
         pro = build_request(self.flux_pro, "Red cube", "2048x2048", "medium")
@@ -108,11 +109,36 @@ class ProviderTests(unittest.TestCase):
         for model in original["models"]:
             model.pop("prompt_policy", None)
         migrated = AppConfig.parse(original)
-        self.assertEqual(len(migrated.models), 6)
+        self.assertEqual(len(migrated.models), 7)
         self.assertEqual(migrated.models[0].endpoint, original["models"][0]["endpoint"])
         self.assertTrue(all(not model.enabled for model in migrated.models[4:]))
         self.assertFalse(migrated.translation.enabled)
         self.assertEqual(migrated.models[3].prompt_policy, "original")
+
+    def test_flare_and_sunburst_use_separate_gpt_requests(self):
+        flare = replace(
+            self.future, enabled=True,
+            endpoint="https://example.openai.azure.com/openai/deployments/gpt-image-2.5-flare/images/generations?api-version=2025-04-01-preview",
+        )
+        self.assertEqual(ModelConfig.parse(flare.public()).deployment, "gpt-image-2.5-flare")
+        for model in (flare, self.sunburst):
+            body = build_request(model, "A bookstore poster.", "1024x1024", "medium")
+            self.assertEqual(body["n"], 1)
+            self.assertEqual(body["quality"], "medium")
+            self.assertEqual(body["output_format"], "png")
+            self.assertNotIn("model", body)
+        self.assertNotEqual(flare.id, self.sunburst.id)
+        self.assertNotEqual(flare.endpoint, self.sunburst.endpoint)
+
+    def test_six_slot_configuration_adds_disabled_sunburst_without_relabeling_history(self):
+        original = config_data()
+        original["models"] = original["models"][:6]
+        original["models"][2]["name"] = "My existing GPT 2.5 configuration"
+        migrated = AppConfig.parse(original)
+        self.assertEqual(migrated.models[2].name, original["models"][2]["name"])
+        self.assertEqual(migrated.models[-1].id, "gpt-image-2-5-sunburst")
+        self.assertFalse(migrated.models[-1].enabled)
+        self.assertFalse(migrated.models[-1].endpoint)
 
     def test_adapters_preserve_prompt_and_only_send_supported_controls(self):
         prompt = "\u4e2d\u6587 poster"
@@ -320,7 +346,7 @@ class ApplicationTests(WorkbenchFixture):
         old.pop("translation")
         original = self.app.config.models[4:]
         saved = self.app.save_config(old)
-        self.assertEqual(len(saved["models"]), 6)
+        self.assertEqual(len(saved["models"]), 7)
         for model in original:
             after = next(item for item in saved["models"] if item["id"] == model.id)
             self.assertEqual(after["endpoint"], model.endpoint)
@@ -417,7 +443,7 @@ class ApplicationTests(WorkbenchFixture):
         self.generate.assert_not_called()
         self.assertEqual(self.app.store.get(job["id"])["status"], "cancelled")
 
-    def test_all_six_slots_can_participate_without_a_four_model_limit(self):
+    def test_all_seven_slots_can_participate_without_a_four_model_limit(self):
         future = next(model for model in self.app.config.models if model.id == "gpt-image-2-5")
         future = replace(
             future, enabled=True, deployment="gpt-image-2.5",
@@ -428,7 +454,24 @@ class ApplicationTests(WorkbenchFixture):
             models=tuple(future if model.id == future.id else model for model in self.app.config.models),
         )
         job = self.run_job(parameters(model_ids=[model.id for model in self.app.config.models]))
-        self.assertEqual(job["progress"], {"done": 6, "total": 6})
+        self.assertEqual(job["progress"], {"done": 7, "total": 7})
+
+    def test_family_filter_is_a_view_and_keeps_statistics_in_the_same_experiment(self):
+        job = self.run_job()
+        filtered = filter_job(job, "gpt")
+        self.assertEqual(filtered["id"], job["id"])
+        self.assertEqual(filtered["view_filter"], "gpt")
+        self.assertEqual(filtered["model_ids"], ["gpt-image-2"])
+        self.assertEqual(filtered["progress"], {"done": 1, "total": 1})
+        self.assertEqual(len(filtered["summary"]), 1)
+        self.assertEqual(filtered["summary"][0]["mean_ms"], job["summary"][1]["mean_ms"])
+        self.assertEqual(len(job["samples"]), 3)
+        self.assertEqual(len(self.app.store.get(job["id"])["models"]), 3)
+        self.assertEqual(self.app.store.history()[0]["providers"], ["flux", "gpt", "mai"])
+        with self.assertRaises(ValidationError):
+            filter_job(job, "unknown")
+        with self.assertRaises(ValidationError):
+            filter_job(filtered, "flux")
 
     def test_readable_archive_has_model_topic_round_and_complete_notes(self):
         job = self.run_job({**parameters(), "topic": "Bookstore / \u4e2d\u6587\u6d77\u62a5"})
@@ -728,6 +771,28 @@ class HttpTests(WorkbenchFixture):
         for path in ("/image-lab.config.json", "/generate.ps1", "/images/../../image-lab.config.json"):
             self.assertEqual(self.request("GET", path)[0], 404)
 
+    def test_idle_connections_close_and_http_work_is_bounded(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        try:
+            connection.request("GET", "/api/health")
+            response = connection.getresponse()
+            self.assertEqual(response.getheader("Connection"), "close")
+            response.read()
+        finally:
+            connection.close()
+        acquired = 0
+        try:
+            for _ in range(self.server.max_http_workers):
+                self.assertTrue(self.server.request_slots.acquire(timeout=5))
+                acquired += 1
+            status, body = self.request("GET", "/api/health")
+            self.assertEqual(status, 503)
+            self.assertIn("busy", json.loads(body)["error"])
+        finally:
+            for _ in range(acquired):
+                self.server.request_slots.release()
+        self.assertEqual(self.request("GET", "/api/health")[0], 200)
+
     def test_http_full_local_flow(self):
         csrf = self.app.csrf_token
         headers = {"Content-Type": "application/json", "X-Image-Lab-Token": csrf}
@@ -748,6 +813,15 @@ class HttpTests(WorkbenchFixture):
         self.assertEqual(json.loads(content)["summary"][0]["rating_mean"], 5)
         self.assertEqual(self.request("GET", f"/api/jobs/{identifier}/export.json")[0], 200)
         self.assertEqual(self.request("GET", f"/api/jobs/{identifier}/export.csv")[0], 200)
+        status, content = self.request("GET", f"/api/jobs/{identifier}/export.json?provider=gpt")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(content)["model_ids"], ["gpt-image-2"])
+        status, content = self.request("GET", f"/api/jobs/{identifier}/export.csv?provider=flux")
+        self.assertEqual(status, 200)
+        rows = list(csv.DictReader(io.StringIO(content.decode("utf-8-sig"))))
+        self.assertEqual([row["model_id"] for row in rows], ["flux-1-kontext-pro"])
+        self.assertEqual(self.request("GET", f"/api/jobs/{identifier}/export.json?provider=unknown")[0], 400)
+        self.assertEqual(self.request("GET", f"/api/jobs/{identifier}/export.json?provider=gpt&provider=flux")[0], 400)
         status, content = self.request("POST", f"/api/jobs/{identifier}/archive", {}, headers)
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(content)["archive"]["image_count"], 3)

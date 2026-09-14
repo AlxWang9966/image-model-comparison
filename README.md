@@ -4,7 +4,7 @@
 
 这是一个在电脑本地运行的对比工作台：输入提示词、选择模型，查看原图和真实耗时，再通过盲评与人工评分记录画质判断。每轮图片会按**主题 → 测试批次 → 模型 → 轮次**自动归档，并附上完整备注。
 
-当前版本：**v0.2.0（本地演示 / 评测工具）**。可从 [Releases](https://github.com/AlxWang9966/image-model-comparison/releases) 获取固定版本；v0.1.0 基线保持不变。
+当前版本：**v0.3.0（本地演示 / 评测工具）**。可从 [Releases](https://github.com/AlxWang9966/image-model-comparison/releases) 获取固定版本；此前发布的版本保持不变。
 
 > **给首次使用的客户**
 >
@@ -14,12 +14,13 @@
 
 ![Image Lab 界面示例](docs/images/workbench.png)
 
-界面截图展示 v0.1 的基础流程；v0.2 另外加入 FLUX.2、英文准备和语言对比控制。首次下载后所有模型及翻译服务默认禁用，自己的资源配置完成后才能生成。原图及逐图备注见 [公开示例](examples/README.md)。
+主界面只保留系列切换、提示词、模型勾选和开始按钮，尺寸、轮数、语言等高级参数默认收起。首次下载后所有模型及翻译服务默认禁用，自己的资源配置完成后才能生成。原图及逐图备注见 [公开示例](examples/README.md)。
 
 ## 功能
 
 | 功能 | 说明 |
 | --- | --- |
+| 一键系列对比 | 全部 / GPT 系列 / FLUX 系列 / MAI；同步筛选画布、统计、历史和导出 |
 | 同任务对比 | 使用原文或明确记录的英文版本，统一共同支持的目标尺寸；可强制全模型原文 |
 | 英文准备 | 内置审核过的英文预设；自定义中文可通过使用者配置的 Azure 文本模型准备英文 |
 | 多轮测速 | 每个模型重复 1–10 轮；支持并行对比或串行基准 |
@@ -39,11 +40,29 @@
 | FLUX.1 Kontext Pro | Azure Foundry BFL 原生 API | 也支持资源实际提供的 FLUX OpenAI-compatible Image API |
 | FLUX.2 Pro | Azure Foundry `flux-2-pro` 原生 API | 多语言提示词、显式宽高、最高 2048 × 2048 |
 | FLUX.2 Flex | Azure Foundry `flux-2-flex` 原生 API | 支持 steps / guidance 调整，参数与耗时一起记录 |
-| GPT Image 2.5 | GPT Images-compatible API 预留槽位 | **未预配置，不代表模型已经公开可用或已有部署** |
+| GPT Image 2.5 Flare | Azure / OpenAI GPT Images API | 独立模型槽位、独立原图与耗时记录 |
+| GPT Image 2.5 Sunburst | Azure / OpenAI GPT Images API | 不与 Flare 合并；使用自己的实际部署 |
 
-不要将“代码中有一个槽位”理解为已经拥有该模型的访问权限。GPT Image 2.5 必须填入实际可用、兼容当前请求格式的 endpoint 和 model/deployment；程序不会把它偷偷替换成 GPT Image 2。FLUX 适配器针对上表三个变体，不是任意 FLUX 版本的通用适配器。
+不要将“代码中有一个槽位”理解为已经拥有该模型的访问权限。每个模型都必须填入自己的实际 endpoint 和 deployment。Flare / Sunburst 对应 `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst`，程序不会把它们换成 GPT Image 2。FLUX 适配器针对上表三个变体，不是任意 FLUX 版本的通用适配器。
 
-原有四槽位配置仍可读取，缺少的 FLUX.2 槽位会补充为禁用状态。已有模型的连接与默认原文行为不被偷偷改写；旧配置不会自动开启付费翻译。保存设置后会写入完整的新配置。
+原有四槽位、六槽位配置仍可读取，缺少的新槽位会补充为禁用状态。为兼容原有配置，Flare 模板沿用内部 ID `gpt-image-2-5`，Sunburst 使用 `gpt-image-2-5-sunburst`；界面与备注中明确显示实际模型名称。已有自定义 GPT 2.5 配置和历史名称不会自动被改写为 Flare。旧配置也不会自动开启付费翻译。
+
+### 清楚地选择比较范围
+
+| 顶部按钮 | 新实验默认选择 |
+| --- | --- |
+| GPT 系列 | GPT Image 2、GPT Image 2.5 Flare、GPT Image 2.5 Sunburst 中已配置的项 |
+| FLUX 系列 | FLUX.1 Kontext、FLUX.2 Pro、FLUX.2 Flex 中已配置的项 |
+| MAI | 已配置的 MAI Image 2.5 |
+| 全部 | 所有已配置模型，可继续取消勾选不需要的项 |
+
+点击系列按钮会移除其他组的勾选，**不会因为隐藏了某些模型而继续把它们计入下一轮调用**。参数和勾选只影响下一轮，当前或历史实验不会被修改。
+
+画布、最快标记、统计、明细及历史列表跟随同一个筛选。每次只查看一个实验，不从多个提示词或多个批次拼图。若当前记录没有该组，会明确显示为空，可打开本组历史或开始新实验。
+
+已经发出的其他模型请求不会被筛选动作取消，运行进度仍注明整轮进度。JSON / CSV 导出只包含当前组的模型与样本；JSON 标记 `view_filter`，实验级信息及归档引用仍指向原始完整批次。图片归档不会因切换筛选而删除其他模型。
+
+**高级参数**默认折叠，摘要直接显示尺寸、轮数和模式。普通使用只需选系列、填提示词、勾模型、点开始。需要固定入口时，可使用 `http://127.0.0.1:8765/?family=gpt` 或 `?family=flux`。
 
 ## 1. 下载并启动
 
@@ -102,6 +121,8 @@ py -3 -m image_lab --port 8765
 | --- | --- |
 | MAI | `https://YOUR-RESOURCE.services.ai.azure.com/mai/v1/images/generations` |
 | Azure GPT Images | `https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR-DEPLOYMENT/images/generations?api-version=2025-04-01-preview` |
+| GPT Image 2.5 Flare | `https://YOUR-RESOURCE.openai.azure.com/openai/deployments/gpt-image-2.5-flare/images/generations?api-version=2025-04-01-preview` |
+| GPT Image 2.5 Sunburst | `https://YOUR-RESOURCE.openai.azure.com/openai/deployments/gpt-image-2.5-sunburst/images/generations?api-version=2025-04-01-preview` |
 | Azure GPT Images v1 | `https://YOUR-RESOURCE.openai.azure.com/openai/v1/images/generations` |
 | Azure FLUX Kontext 原生 BFL | `https://YOUR-RESOURCE.services.ai.azure.com/providers/blackforestlabs/v1/flux-kontext-pro?api-version=preview` |
 | Azure FLUX.2 Pro | `https://YOUR-RESOURCE.services.ai.azure.com/providers/blackforestlabs/v1/flux-2-pro?api-version=preview` |
@@ -191,9 +212,9 @@ https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR-TEXT-DEPLOYMENT/c
 
 ## 3. 做一次可比较的实验
 
-1. 选择示例提示词，或输入自己的完整提示词。
+1. 先点击 GPT / FLUX / MAI / 全部，再选择示例提示词或输入完整提示词。
 2. 填写 **提示词主题 / Topic**，如“中文海报”“产品玻璃材质”“多物体数量关系”。它会用于归档目录、文件名和备注；留空时取提示词前 32 个字符。
-3. 选择模型、语言策略、共同支持的目标尺寸、轮数及执行模式；需要时检查或补充英文稿。
+3. 检查本组的模型勾选；需要调整尺寸、质量、轮数或语言时展开高级参数，必要时补充英文稿。
 4. 点击 **开始对比**。生图调用数量为“模型数 × 轮数”；需要自动英文准备时再增加最多一次文本请求，均按相应服务计费。
 5. 查看各轮结果，点击原图放大；使用盲评后再给画质评分。
 6. 在结果下方查看归档路径。评分保存后，归档备注会同步更新。
@@ -203,6 +224,8 @@ https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR-TEXT-DEPLOYMENT/c
 选择 MAI 2.5 或 FLUX.1 Kontext 时，共同目标尺寸是 **1024 × 1024**。GPT 与 FLUX.2 还支持配置内的横图 / 竖图；只选 FLUX.2 时可使用 **2048 × 2048**。Kontext 使用 `1:1` 比例，FLUX.2 发送明确的 `width` / `height`。实际返回像素尺寸都会核对、记录，不会通过暗中缩放伪造统一分辨率。
 
 GPT 的 `low / medium / high / auto` 只适用于 GPT。MAI、FLUX 使用各自原生设置，Flex 的 steps / guidance 也不是 GPT quality，**它们不是同一个“质量档位”**。
+
+为保持界面清晰，GPT 组目前使用共同的 1024 / 1536 尺寸档位和上述质量选项。Flare / Sunburst API 还有更高质量或自定义分辨率能力，但本版没有把这些额外控制堆到主界面。
 
 ### 如何理解速度
 
@@ -314,7 +337,9 @@ image-lab-archive\
 
 | 问题 | 处理 |
 | --- | --- |
-| 首次看到 `0 / 6` 已配置 | 正常：模板默认禁用所有模型，先配置自己的资源并启用 |
+| 首次看到 `0 / 7` 已配置 | 正常：模板默认禁用所有模型，先配置自己的资源并启用 |
+| 切换 GPT 后没有图片 | 当前记录没有 GPT 结果；可打开本组历史或开始本组新实验，不会挪用其他实验图片 |
+| 503 / 本地服务暂时繁忙 | 本地 HTTP 工作线程有上限，稍后重试；预览连接会及时关闭，避免长期开页积累闲置线程 |
 | 中文指令需要英文稿 | 使用内置配对英文稿、手工提供英文，或配置并启用自动英文准备；也可明确选择全部原文测试 |
 | 英文准备失败 / 引号文字改变 | 需要英文的图像模型不会调用；检查文本部署权限 / 协议或手工给出经审核的英文稿 |
 | 找不到 Python | 安装 Python 3.10+；也可使用 Azure CLI 自带的运行时 |
@@ -362,6 +387,14 @@ image-model-comparison\
 ```powershell
 py -3 -m unittest discover -s tests -v
 ```
+
+开发者可另外运行浏览器冒烟检查（需要已安装的 Python Playwright 和 Microsoft Edge，不是应用运行依赖）：
+
+```powershell
+py -3 .\tests\browser_smoke.py --channel msedge
+```
+
+它在临时目录启动独立本地服务、使用模拟图像提供方，检查系列选择、统计 / 导出、盲评、归档操作、运行中切换与手机布局。不会调用 Azure / OpenAI，也不会改写私人配置或真实结果。
 
 本版本专注文生图对比。未提供图生图编辑、自动 AI 评分、计费金额估算、任意第三方代理接入或云端多用户托管。
 

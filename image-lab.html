@@ -102,6 +102,15 @@
     .hero p { color: var(--cp-text-muted); font-size: 13px; }
     .hero-stamp { text-align: right; font-size: 12px; color: var(--cp-text-muted); white-space: nowrap; }
     .hero-stamp strong { color: var(--cp-text); font-size: 28px; display: block; font-weight: 500; letter-spacing: -.06em; }
+    .family-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .family-button { padding: 10px 20px; background: var(--cp-surface); border-radius: 10px; }
+    .family-button[aria-pressed="true"] { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
+    .family-count { font-size: 11px; opacity: .8; }
+    .family-context { min-height: 22px; margin-bottom: 20px; }
+    .advanced-options { padding: 12px; border: 1px solid var(--cp-border); border-radius: 10px; margin-bottom: 16px; }
+    .advanced-options > summary { color: var(--cp-text); font-weight: 600; }
+    .advanced-options[open] > summary { margin-bottom: 16px; }
+    .advanced-options > summary span { display: block; margin-top: 4px; font-size: 11px; font-weight: 400; color: var(--cp-text-muted); }
     .layout { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 24px; align-items: start; }
     .panel { border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); }
     .setup { padding: 20px; }
@@ -147,6 +156,7 @@
     .notice-flex { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
     .notice strong { color: var(--cp-accent); }
     .result-grid { display: grid; grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr)); gap: 16px; }
+    .result-grid.single { grid-template-columns: minmax(0, 380px); }
     .result-card { overflow: hidden; min-width: 0; }
     .result-card.fastest { border-color: var(--cp-accent); }
     .card-heading { min-height: 69px; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
@@ -171,9 +181,6 @@
     .card-bottom { border-top: 1px solid var(--cp-border); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .card-bottom .hint { font-size: 10px; }
     .card-warning { color: var(--cp-warning); font-size: 10px; margin-top: 8px; overflow-wrap: anywhere; }
-    .future-note { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px dashed var(--cp-border-strong); border-radius: 12px; margin-top: 16px; font-size: 12px; color: var(--cp-text-muted); }
-    .future-note p { flex: 1; }
-    .future-note b { color: var(--cp-text); font-weight: 600; }
     .analysis { padding: 20px; margin-top: 24px; }
     .analysis-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 20px; }
     .speed-row { display: grid; grid-template-columns: 150px minmax(40px, 1fr) 68px 65px; gap: 12px; align-items: center; padding: 9px 0; font-size: 12px; }
@@ -230,7 +237,7 @@
     @media (max-width: 1200px) { .top-inner, main { padding-left: 20px; padding-right: 20px; } .layout { grid-template-columns: 260px minmax(0, 1fr); gap: 16px; } .setup { padding: 16px; } .result-grid { gap: 10px; } .card-heading, .card-info { padding: 12px; } .card-heading .provider-mark { display: none; } .card-name h3 { font-size: 12px; } .brand-sub { display: none; } .connection { margin-right: 4px; } }
     @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } .setup form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; } .prompt-block { grid-row: span 3; } .controls-block { grid-column: 2; } .launch-block, .setup-footer { grid-column: 1 / -1; } .setup-footer { margin-top: 12px; } .model-list { grid-template-columns: 1fr 1fr; } .workspace-head { margin-top: 12px; } .connection { display: none; } }
     @media (max-width: 640px) { main { padding: 24px 16px; } .top-inner { padding: 12px 16px; gap: 12px; } .brand { font-size: 17px; gap: 8px; } .top-actions { gap: 5px; } .top-actions button { padding: 6px 8px; font-size: 11px; } .top-actions .icon { display: none; } .theme-mobile { display: inline; } .hero { margin-bottom: 20px; } .hero-stamp { display: none; } h1 { font-size: 26px; } .hero p { font-size: 12px; } .setup form { display: block; } .result-grid { grid-template-columns: 1fr; } .workspace-head { align-items: flex-start; flex-direction: column; } .tools { width: 100%; } .tools button, .tools .button { flex: 1; font-size: 11px; padding: 7px; } .card-heading .provider-mark { display: grid; } .card-name h3 { font-size: 14px; } .card-heading, .card-info { padding: 16px; } .run-line { align-items: flex-start; } .speed-row { grid-template-columns: 115px minmax(24px, 1fr) 58px; font-size: 11px; gap: 8px; } .speed-row .run-count { display: none; } .analysis { padding: 16px; } .analysis-top { align-items: flex-start; flex-direction: column; } .future-note { flex-wrap: wrap; } .dialog-header, .dialog-body { padding: 16px; } .dialog-footer { padding: 12px 16px; } .rating-row { grid-template-columns: 1fr 120px; } .zoom-slider input { width: 120px; } .footer { flex-direction: column; gap: 4px; } .settings-model .two-col { grid-template-columns: 1fr; gap: 0; } }
-    @media (max-width: 640px) { .top-inner { flex-wrap: wrap; } .top-actions { margin-left: 0; width: 100%; justify-content: space-between; } #start-top-button { flex: 1; } }
+    @media (max-width: 640px) { .top-inner { flex-wrap: wrap; } .top-actions { margin-left: 0; width: 100%; justify-content: space-between; } #start-top-button { flex: 1; } .family-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } .family-button { padding: 9px 4px; gap: 4px; font-size: 11px; } .result-grid.single { grid-template-columns: 1fr; } #archive-note { flex-direction: column; align-items: stretch; } }
     @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .progress > span { transition: none; } }
   </style>
 </head>
@@ -262,27 +269,35 @@
   <main>
     <section class="hero">
       <div><div class="eyebrow">IMAGE GENERATION WORKBENCH</div><h1>让速度与画质，同时可见。</h1><p>同一个任务，并排看结果。原始提示词、英文版本与真实耗时都可追溯。</p></div>
-      <div class="hero-stamp"><strong id="ready-count">— / 6</strong>已配置模型 · 所有结果保存在本地</div>
+      <div class="hero-stamp"><strong id="ready-count">— / 7</strong>已配置模型 · 所有结果保存在本地</div>
     </section>
+    <div id="family-bar" class="family-bar" role="group" aria-label="按模型系列筛选">
+      <button class="family-button" data-family="all" aria-pressed="true" disabled>全部<span class="family-count" data-family-count="all"></span></button>
+      <button class="family-button" data-family="gpt" aria-pressed="false" disabled>GPT 系列<span class="family-count" data-family-count="gpt"></span></button>
+      <button class="family-button" data-family="flux" aria-pressed="false" disabled>FLUX 系列<span class="family-count" data-family-count="flux"></span></button>
+      <button class="family-button" data-family="mai" aria-pressed="false" disabled>MAI<span class="family-count" data-family-count="mai"></span></button>
+    </div>
+    <p id="family-context" class="hint family-context">选择一个系列，快速对比同组模型。不同实验的图片不会混在一起。</p>
     <div id="error-banner" class="notice error notice-flex" role="alert" hidden><span id="error-text"></span><button id="retry-button" class="small">重新连接</button><button id="dismiss-error" class="small" aria-label="关闭错误提示">×</button></div>
     <div id="active-banner" class="notice notice-flex" hidden><span id="active-text">有一轮实验正在生成，切换历史不会中断它。</span><button id="return-active" class="small">查看正在生成的实验</button></div>
     <div class="layout">
       <aside class="panel setup">
-        <div class="section-title"><h2>实验设置</h2><span class="step">01 / CONFIGURE</span></div>
+        <div class="section-title"><h2>新实验设置</h2><span class="step">01 / CONFIGURE</span></div>
         <form id="experiment-form">
           <div class="prompt-block">
             <div class="field"><label for="preset">提示词示例 <span class="hint">可自由修改</span></label><select id="preset"><option value="poster">中文海报 · 文字与版式</option><option value="product">产品摄影 · 材质与光影</option><option value="portrait">人像摄影 · 皮肤与细节</option><option value="composition">复杂场景 · 关系与遵循</option></select></div>
             <div class="field"><label for="topic">提示词主题 / Topic</label><input id="topic" maxlength="80" placeholder="用于图片目录与备注，例如：中文海报"><p class="hint" style="margin-top:6px">不填时使用提示词的前 32 个字符作为归档主题。</p></div>
             <div class="field"><label for="prompt">原始任务提示词 <span id="prompt-count" class="hint">0 / 4000</span></label><textarea id="prompt" maxlength="4000" required spellcheck="false" aria-describedby="prompt-help"></textarea><p id="prompt-help" class="hint" style="margin-top:6px">按语言策略发送原文或英文版本；修改原文会清除旧英文稿，避免误用。</p></div>
-            <div class="field"><label for="language-mode">提示词语言策略</label><select id="language-mode"><option value="model_defaults">按各模型设置</option><option value="original_all">全部使用原文（语言能力测试）</option><option value="english_flux">FLUX 系列使用英文版</option></select><p class="hint" style="margin-top:6px">FLUX.2 有官方多语言说明；中文指令理解与中文文字渲染是两回事。</p></div>
-            <details id="english-section" class="field"><summary id="english-summary">英文提示词准备</summary><div style="margin-top:10px"><label class="field-label" for="english-prompt">英文版本（可选，最多 16000 字符）</label><textarea id="english-prompt" maxlength="16000" spellcheck="false" style="min-height:120px" placeholder="留空时，可通过已配置的 Azure 文本模型自动准备英文。图片中要求出现的中文引号文本应保持原样。"></textarea><p id="english-info" class="hint" style="margin-top:6px"></p></div></details>
           </div>
-          <div class="models-block"><div class="field-label">参与模型 <span class="hint">未配置的模型不可生成</span></div><div id="model-list" class="model-list"><p class="hint">正在读取模型配置…</p></div></div>
-          <div class="controls-block">
+          <div class="models-block"><div class="field-label">参与模型 <span id="model-selection-note" class="hint">未配置的模型不可生成</span></div><div id="model-list" class="model-list"><p class="hint">正在读取模型配置…</p></div></div>
+          <details id="advanced-options" class="controls-block advanced-options">
+            <summary>高级参数<span id="advanced-summary">1024 × 1024 · 1 轮 · 并行</span></summary>
             <div class="two-col"><div class="field"><label for="size">统一尺寸</label><select id="size"><option value="1024x1024">1024 × 1024</option></select></div><div class="field"><label for="quality">生成质量 <span class="hint">仅 GPT</span></label><select id="quality"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="auto">Auto</option></select></div></div>
             <div class="two-col"><div class="field"><label for="runs">重复轮数</label><input id="runs" type="number" min="1" max="10" step="1" value="1" required></div><div class="field"><label for="mode">执行方式</label><select id="mode"><option value="parallel">并行对比</option><option value="sequential">串行基准</option></select></div></div>
             <p id="size-note" class="hint" style="margin-bottom:16px">尺寸仅列出所选模型共同支持的选项。</p>
-          </div>
+            <div class="field"><label for="language-mode">提示词语言策略</label><select id="language-mode"><option value="model_defaults">按各模型设置</option><option value="original_all">全部使用原文（语言能力测试）</option><option value="english_flux">FLUX 系列使用英文版</option></select><p class="hint" style="margin-top:6px">FLUX.2 有官方多语言说明；中文指令理解与中文文字渲染是两回事。</p></div>
+            <details id="english-section" class="field"><summary id="english-summary">英文提示词准备</summary><div style="margin-top:10px"><label class="field-label" for="english-prompt">英文版本（可选，最多 16000 字符）</label><textarea id="english-prompt" maxlength="16000" spellcheck="false" style="min-height:120px" placeholder="留空时，可通过已配置的 Azure 文本模型自动准备英文。图片中要求出现的中文引号文本应保持原样。"></textarea><p id="english-info" class="hint" style="margin-top:6px"></p></div></details>
+          </details>
           <div class="launch-block"><button class="primary launch" id="start-button" type="submit" disabled><svg class="icon"><use href="#i-play"/></svg><span>开始对比</span></button><button class="launch" id="cancel-button" type="button" hidden>停止后续请求</button><div id="request-count" class="request-count">实际请求会产生模型调用费用</div><p id="cancel-note" class="hint" hidden style="margin-top:8px">已发出的请求仍会完成并可能计费；只停止尚未发出的请求。</p></div>
           <div class="setup-footer hint">耗时含网络、图片传输与原图保存，不含英文准备、鉴权、排队和归档副本写入。不同模型的质量档位不等价。<br><span class="mono">Ctrl / ⌘ + Enter</span> 开始新一轮</div>
         </form>
@@ -297,8 +312,7 @@
         <div id="progress" class="progress" hidden><span id="progress-fill"></span></div>
         <div id="run-warning" class="notice" hidden></div>
         <div id="result-grid" class="result-grid"></div>
-        <div id="future-note" class="future-note"><span class="provider-mark">G+</span><p><b>GPT Image 2.5</b> · 已保留扩展位，填入实际 endpoint 和部署名后才能加入。不会自动换成其他模型。</p><button class="small" id="configure-future">配置入口</button></div>
-        <div id="archive-note" class="notice notice-flex" style="margin-top:16px" hidden><div style="min-width:0;flex:1"><strong>本轮图片归档</strong><p id="archive-path" class="mono hint" style="overflow-wrap:anywhere;margin-top:4px"></p><p id="archive-info" class="hint" style="margin-top:4px"></p></div><div class="tools"><button id="archive-copy" class="small">复制路径</button><button id="archive-refresh" class="small">更新归档</button></div></div>
+        <div id="archive-note" class="notice notice-flex" style="margin-top:16px" hidden><div style="min-width:0;flex:1"><strong>整轮图片归档</strong><p id="archive-path" class="mono hint" style="overflow-wrap:anywhere;margin-top:4px"></p><p id="archive-info" class="hint" style="margin-top:4px"></p></div><div class="tools"><button id="archive-copy" class="small">复制路径</button><button id="archive-refresh" class="small">更新归档</button></div></div>
         <section class="panel analysis" id="analysis">
           <div class="analysis-top"><div><div class="eyebrow" style="margin-bottom:5px">02 / COMPARE</div><h2>速度与质量，一起衡量</h2></div><span id="timing-label" class="hint">端到端耗时 · 成功样本</span></div>
           <div id="speed-chart"><p class="empty-note">生成完成后，这里会显示真实耗时和人工评分。</p></div>
@@ -375,7 +389,10 @@
       portrait:'A natural-light portrait photograph of a young adult woman wearing round eyeglasses, reading beside a window. Her fingers naturally turn a book page. Preserve real skin texture, with soft side lighting and softly blurred plants and bookshelves in the background. Half-body composition, realistic photographic quality, no skin smoothing, and no added text.',
       composition:'A realistic still-life photograph on a dark wooden dining table. Exactly three red apples are on the left and exactly two green pears are on the right. A transparent drinking glass is in the middle. Behind the glass is a white card with the exact text "GOOD MORNING". A silver spoon lies horizontally in front of the glass. All objects are fully visible; follow the object counts and spatial relationships exactly.'
     };
-    const S = {config:null,csrf:"",history:[],selected:new Set(),job:null,activeId:null,round:1,blind:false,order:[],signature:"",connected:false,starting:false,pollTimer:null,pollBusy:false,viewToken:0,ratingTarget:null,zoomSample:null,healthBusy:false};
+    const familyNames = {all:"全部模型",gpt:"GPT 系列",flux:"FLUX 系列",mai:"MAI"};
+    const requestedFamily = new URLSearchParams(location.search).get("family");
+    const validInitialFamily = Object.hasOwn(familyNames, requestedFamily || "");
+    const S = {config:null,csrf:"",history:[],selected:new Set(),job:null,activeId:null,round:1,blind:false,order:[],signature:"",connected:false,starting:false,pollTimer:null,pollBusy:false,viewToken:0,ratingTarget:null,zoomSample:null,healthBusy:false,family:validInitialFamily ? requestedFamily : "all",familyChosen:validInitialFamily};
     let toastTimer;
     function toast(message) { $("toast").textContent = message; $("toast").hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 4500); }
     function error(message, retry=false) { $("error-text").textContent = message; $("error-banner").hidden = false; $("retry-button").hidden = !retry; }
@@ -398,6 +415,37 @@
       return result;
     }
     function availableModels() { return S.config?.models.filter(model => model.configured) || []; }
+    function inFamily(model) { return S.family === "all" || model.provider === S.family; }
+    function familyModels() { return S.config?.models.filter(inFamily) || []; }
+    function historyMatches(job) {
+      if (S.family === "all") return true;
+      const providers = job.providers || job.model_ids.map(id => S.config?.models.find(model => model.id === id)?.provider);
+      return providers.includes(S.family);
+    }
+    function setFamily(family) {
+      if (!S.config || !Object.hasOwn(familyNames, family)) return;
+      S.family = family; S.familyChosen = true;
+      S.selected = new Set(availableModels().filter(inFamily).map(model => model.id));
+      S.order = []; S.signature = "";
+      const url = new URL(location.href); url.searchParams.set("family", family);
+      history.replaceState(null, "", url);
+      syncModelInputs(); render(); renderHistory();
+    }
+    function renderFamily() {
+      $("family-bar").querySelectorAll("[data-family]").forEach(button => {
+        button.disabled = !S.config;
+        button.setAttribute("aria-pressed", String(button.dataset.family === S.family));
+      });
+      $("family-bar").querySelectorAll("[data-family-count]").forEach(label => {
+        label.textContent = S.config ? S.config.models.filter(model => label.dataset.familyCount === "all" || model.provider === label.dataset.familyCount).length : "";
+      });
+      const count = modelsForView().length;
+      $("model-selection-note").textContent = `${S.selected.size} 个已选 / ${familyModels().length} 个可选槽位`;
+      $("family-context").textContent = S.job ?
+        `当前记录显示 ${count} / ${S.job.models.length} 个模型；下一轮已选 ${S.selected.size} 个${S.family === "all" ? "模型" : familyNames[S.family] + "模型"}。` +
+        (S.activeId ? " 筛选不会取消已经发出的其他模型请求。" : " 不合并不同实验的图片或统计。") :
+        `${familyNames[S.family]}：已选 ${S.selected.size} 个模型。只会调用当前勾选的模型，其他组不会在后台生图。`;
+    }
     function englishTargets() {
       const mode = $("language-mode").value;
       return (S.config?.models || []).filter(model => S.selected.has(model.id) && mode !== "original_all" && (mode === "english_flux" ? model.provider === "flux" : model.prompt_policy === "english"));
@@ -413,7 +461,8 @@
         S.config?.translation?.configured ? "需要时由已配置的 Azure 文本模型自动准备一次英文版本，耗时单独记录、不计入生图耗时。英文准备失败不会偷偷退回中文。" :
         "自动英文准备未配置。中文指令需要英文版时，请补充英文稿，或在模型设置中启用 Azure 文本模型。";
     }
-    function modelsForView() { return S.job ? S.job.models : (S.config?.models.filter(model => S.selected.has(model.id)) || []); }
+    function modelsForView() { return (S.job ? S.job.models : familyModels().filter(model => S.selected.has(model.id))).filter(inFamily); }
+    function samplesForView() { const ids = new Set(modelsForView().map(model => model.id)); return S.job?.samples.filter(sample => ids.has(sample.model_id)) || []; }
     function orderedModels() {
       const models = modelsForView();
       if (!S.blind) return models;
@@ -425,12 +474,12 @@
       return S.blind ? `图像 ${String.fromCharCode(65 + models.findIndex(model => model.id === modelId))}` : (models.find(model => model.id === modelId)?.name || modelId);
     }
     function syncModelInputs() {
-      $("model-list").innerHTML = (S.config?.models || []).map(model => `<label class="model-option ${model.configured ? "" : "unavailable"}">
+      $("model-list").innerHTML = familyModels().map(model => `<label class="model-option ${model.configured ? "" : "unavailable"}">
         <input type="checkbox" data-model="${esc(model.id)}" ${S.selected.has(model.id) ? "checked" : ""} ${model.configured ? "" : "disabled"} aria-label="选择 ${esc(model.name)}">
-        <span class="provider-mark">${model.provider === "mai" ? "M" : model.provider === "flux" ? "F" : model.id === "gpt-image-2-5" ? "G+" : "G"}</span>
+        <span class="provider-mark">${model.provider === "mai" ? "M" : model.provider === "flux" ? "F" : model.id.startsWith("gpt-image-2-5") ? "G+" : "G"}</span>
         <span class="model-text"><strong>${esc(model.name)}</strong><small>${model.configured ? "已配置 · " + esc(model.version || "版本未记录") + (model.prompt_policy === "english" ? " · 英文优先" : "") : "待配置 · 暂不参与生成"}</small></span>
       </label>`).join("");
-      $("ready-count").textContent = `${availableModels().length} / ${S.config?.models.length || 6}`;
+      $("ready-count").textContent = `${availableModels().length} / ${S.config?.models.length || 7}`;
       updateSize();
     }
     function updateSize() {
@@ -454,19 +503,20 @@
       $("cancel-note").hidden = !S.activeId;
       $("request-count").textContent = `${S.selected.size} 个模型 × ${Number.isInteger(runs) && runs>0 ? runs : "—"} 轮 = ${Number.isInteger(runs) && runs>0 ? S.selected.size*runs : "—"} 次生图请求${mayTranslate() ? "，另可能增加 1 次文本准备" : ""} · 按服务计费`;
       languageInfo();
+      renderFamily();
+      $("advanced-summary").textContent = `${$("size").value.replace("x"," × ")} · ${Number.isInteger(runs) && runs > 0 ? runs : "—"} 轮 · ${$("mode").value === "parallel" ? "并行" : "串行"}${$("quality").disabled ? "" : " · GPT " + $("quality").value}`;
       $("active-banner").hidden = !S.activeId || S.job?.id === S.activeId;
-      $("reuse-button").disabled = !S.job;
+      $("reuse-button").disabled = !S.job || !modelsForView().length;
       $("history-button").disabled = !S.config;
       $("settings-button").disabled = !S.config;
-      $("configure-future").disabled = !S.config;
       $("save-settings").disabled = !!S.activeId;
       $("settings-active-note").textContent = S.activeId ? "请等待当前实验完成后修改接入配置。" : "";
       for (const format of ["json","csv"]) {
         const link = $(format+"-export");
-        const allowed = !!S.job && !S.blind;
+        const allowed = !!S.job && !S.blind && modelsForView().length > 0;
         link.setAttribute("aria-disabled", String(!allowed));
-        if (allowed) link.href = `/api/jobs/${encodeURIComponent(S.job.id)}/export.${format}`; else link.removeAttribute("href");
-        link.title = S.blind ? "请先关闭盲评再导出，导出内容包含模型身份。" : "内部诊断导出，可能包含部署名和 endpoint。对外分享优先使用去掉连接字段的图片归档，并人工审核图像、提示词和备注。";
+        if (allowed) link.href = `/api/jobs/${encodeURIComponent(S.job.id)}/export.${format}?provider=${S.family}`; else link.removeAttribute("href");
+        link.title = S.blind ? "请先关闭盲评再导出，导出内容包含模型身份。" : `导出当前记录的${familyNames[S.family]}。内部诊断数据可能包含部署名和 endpoint；对外分享仍需审核。`;
       }
     }
     function adoptJob(job) {
@@ -475,20 +525,31 @@
       S.job = job;
       render();
     }
-    async function loadJob(id) {
+    async function loadJob(id, inferFamily=false) {
       const token = ++S.viewToken;
-      try { const job = await api(`/api/jobs/${encodeURIComponent(id)}`); if (token === S.viewToken) adoptJob(job); }
+      try {
+        const job = await api(`/api/jobs/${encodeURIComponent(id)}`);
+        if (token === S.viewToken) {
+          if (inferFamily && !S.familyChosen) {
+            const providers = [...new Set(job.models.map(model => model.provider))];
+            S.family = providers.length === 1 && Object.hasOwn(familyNames, providers[0]) ? providers[0] : "all";
+            S.selected = new Set(availableModels().filter(inFamily).map(model => model.id));
+            syncModelInputs();
+          }
+          adoptJob(job);
+        }
+      }
       catch (err) { error("无法打开实验：" + err.message); }
     }
     async function bootstrap(initial=false) {
       try {
         const boot = await api("/api/bootstrap");
         S.csrf = boot.csrf_token; S.config = boot.config; S.history = boot.history; S.activeId = boot.active_job_id;
-        S.selected = new Set(initial ? availableModels().map(model => model.id) : [...S.selected].filter(id => availableModels().some(model => model.id === id)));
+        S.selected = new Set(initial ? availableModels().filter(inFamily).map(model => model.id) : [...S.selected].filter(id => availableModels().some(model => model.id === id && inFamily(model))));
         connected(true); syncModelInputs(); renderHistory();
         $("error-banner").hidden = true;
         if (boot.warnings?.length) error(boot.warnings.join(" · "));
-        if (initial && (S.activeId || S.history[0]?.id)) await loadJob(S.activeId || S.history[0].id);
+        if (initial && (S.activeId || S.history[0]?.id)) await loadJob(S.activeId || S.history[0].id, true);
         else render();
         if (S.activeId) schedulePoll();
       } catch (err) { connected(false); error("无法连接本地服务。请运行 .\\start-image-lab.ps1，然后重新连接。 " + err.message, true); }
@@ -516,7 +577,7 @@
       const rounds = job?.runs || 1; S.round = Math.min(S.round, rounds);
       $("round").innerHTML = Array.from({length:rounds},(_,i) => `<option value="${i+1}">第 ${i+1} 轮</option>`).join("");
       $("round").value = String(S.round); $("round").disabled = rounds <= 1;
-      $("run-meta").innerHTML = job ? `<span>${esc(dateText(job.created_at))}</span><span>${esc(job.topic || "主题未记录")}</span><span>${esc(job.size === "unknown" ? "尺寸未记录" : job.size === "mixed" ? "原记录尺寸不一致" : job.size.replace("x"," × "))}</span><span>${job.mode === "parallel" ? "并行" : "串行"} · ${job.model_ids.length} 模型 · ${job.runs} 轮</span><span>${job.source === "legacy" ? "原脚本记录 · API 响应耗时" : `已完成 ${job.progress.done} / ${job.progress.total} 请求`}</span>` : "<span>选择模型，输入提示词，然后开始一轮对比。</span>";
+      $("run-meta").innerHTML = job ? `<span>${esc(dateText(job.created_at))}</span><span>${esc(job.topic || "主题未记录")}</span><span>${esc(job.size === "unknown" ? "尺寸未记录" : job.size === "mixed" ? "原记录尺寸不一致" : job.size.replace("x"," × "))}</span><span>${job.mode === "parallel" ? "并行" : "串行"} · ${job.model_ids.length} 模型 · ${job.runs} 轮</span><span>${job.source === "legacy" ? "原脚本记录 · API 响应耗时" : `整轮完成 ${job.progress.done} / ${job.progress.total} 请求`}</span>` : "<span>选择模型，输入提示词，然后开始一轮对比。</span>";
       if (job?.translation?.status === "running") $("run-meta").insertAdjacentHTML("beforeend", '<span class="badge accent">正在调用文本模型准备英文，不计入生图耗时</span>');
       else if (job?.translation?.request_attempted) $("run-meta").insertAdjacentHTML("beforeend", `<span>英文准备 ${seconds(job.translation.elapsed_ms)} s · ${job.translation.status === "completed" ? "额外文本调用" : "失败"}</span>`);
       $("progress").hidden = !job || !active.has(job.status);
@@ -524,11 +585,10 @@
       const warnings = job?.warnings || [];
       $("run-warning").hidden = !warnings.length || S.blind;
       $("run-warning").innerHTML = warnings.length ? `<details><summary>本轮有 ${warnings.length} 条记录说明${job.source === "legacy" ? " · 旧计时口径不能与新实验混用" : ""}</summary><ul>${warnings.map(message => `<li>${esc(message)}</li>`).join("")}</ul></details>` : "";
-      const signature = JSON.stringify([job?.id,job?.updated_at,S.round,S.blind,S.order,[...S.selected]]);
-      if (signature !== S.signature) { renderCards(); S.signature = JSON.stringify([job?.id,job?.updated_at,S.round,S.blind,S.order,[...S.selected]]); }
+      const signature = JSON.stringify([job?.id,job?.updated_at,S.round,S.blind,S.order,S.family,[...S.selected]]);
+      if (signature !== S.signature) { renderCards(); S.signature = JSON.stringify([job?.id,job?.updated_at,S.round,S.blind,S.order,S.family,[...S.selected]]); }
       renderSummary();
       renderArchive();
-      $("future-note").hidden = !!S.config?.models.find(model => model.id === "gpt-image-2-5")?.configured || S.blind;
       $("run-details").hidden = !job || S.blind;
       if (job && !S.blind) {
         $("run-prompt").textContent = job.prompt || "原始提示词未记录，不能根据图片反推为某个提示词。";
@@ -536,34 +596,41 @@
           topic:job.topic || "", original_prompt:job.prompt, english_prompt:job.english_prompt || null,
           language_mode:job.language_mode || "original_all", translation:job.translation || null,
           requested_size:job.size, gpt_quality:job.gpt_quality, mode:job.mode, timing_scope:job.timing_scope,
-          models:job.models.map(model => ({name:model.name,deployment:model.deployment,version:model.version || "unknown",endpoint:model.endpoint,prompt_policy:model.prompt_policy || "original"})),
-          requests:job.samples.filter(sample => sample.round === S.round).map(sample => ({model_id:sample.model_id,prompt_variant:sample.prompt_variant || "original",effective_prompt:sample.effective_prompt ?? sample.request?.prompt ?? null,body:sample.request,revised_prompt:sample.revised_prompt || null}))
+          view_filter:S.family,
+          models:modelsForView().map(model => ({name:model.name,deployment:model.deployment,version:model.version || "unknown",endpoint:model.endpoint,prompt_policy:model.prompt_policy || "original"})),
+          requests:samplesForView().filter(sample => sample.round === S.round).map(sample => ({model_id:sample.model_id,prompt_variant:sample.prompt_variant || "original",effective_prompt:sample.effective_prompt ?? sample.request?.prompt ?? null,body:sample.request,revised_prompt:sample.revised_prompt || null}))
         }, null, 2);
-      }
-      function archivePath() {
-        const archive = S.job?.archive;
-        return archive?.status === "ready" ? `.\\${archive.root_name}\\${archive.relative_dir}` : "";
-      }
-      function renderArchive() {
-        const job = S.job, archive = job?.archive;
-        $("archive-note").hidden = !job || S.blind;
-        $("archive-note").classList.toggle("error", archive?.status === "failed");
-        $("archive-copy").disabled = !archivePath();
-        $("archive-refresh").disabled = !job || active.has(job.status);
-        if (!job) return;
-        $("archive-path").textContent = archivePath() || (active.has(job.status) ? "本轮结束后自动整理到 image-lab-archive 文件夹。" : "该记录尚未完成归档。");
-        $("archive-info").textContent = archive?.status === "failed" ? archive.error :
-          archive?.status === "ready" ? `${archive.image_count} 张原图 / ${archive.sample_count} 条样本记录。每张图配有模型、主题、完整提示词、耗时和评分备注。${archive.missing_images ? " 有 " + archive.missing_images + " 张历史图片已缺失，已明确标注。" : ""} 分享前请审核图像与提示词的隐私。` :
-          "归档不会重新生图。失败或被旧脚本覆盖的图片只保留备注，不伪造替代图片。";
       }
       updateActions(); tickClocks();
     }
+    function archivePath() {
+      const archive = S.job?.archive;
+      return archive?.status === "ready" ? `.\\${archive.root_name}\\${archive.relative_dir}` : "";
+    }
+    function renderArchive() {
+      const job = S.job, archive = job?.archive;
+      $("archive-note").hidden = !job || S.blind;
+      $("archive-note").classList.toggle("error", archive?.status === "failed");
+      $("archive-copy").disabled = !archivePath();
+      $("archive-refresh").disabled = !job || active.has(job.status);
+      if (!job) return;
+      $("archive-path").textContent = archivePath() || (active.has(job.status) ? "本轮结束后自动整理到 image-lab-archive 文件夹。" : "该记录尚未完成归档。");
+      $("archive-info").textContent = archive?.status === "failed" ? archive.error :
+        archive?.status === "ready" ? `整轮共 ${archive.image_count} 张原图 / ${archive.sample_count} 条样本记录，归档不随画布筛选删除模型。${archive.missing_images ? " 有 " + archive.missing_images + " 张历史图片已缺失，已明确标注。" : ""} 分享前请审核图像、提示词和备注。` :
+        "归档不会重新生图。失败或被旧脚本覆盖的图片只保留备注，不伪造替代图片。";
+    }
     function renderCards() {
-      const models = orderedModels(), samples = S.job?.samples.filter(sample => sample.round === S.round) || [];
+      const models = orderedModels(), samples = samplesForView().filter(sample => sample.round === S.round);
+      $("result-grid").classList.toggle("single", models.length === 1);
       const successes = samples.filter(sample => sample.status === "success" && Number.isFinite(sample.elapsed_ms));
       const best = samples.length && samples.every(sample => terminal.has(sample.status)) && successes.length > 1 ? Math.min(...successes.map(sample => sample.elapsed_ms)) : null;
       $("result-grid").style.setProperty("--columns", models.length === 4 ? "2" : String(Math.max(1, Math.min(3, models.length))));
-      if (!models.length) { $("result-grid").innerHTML = '<div class="panel empty-note">请先选择至少一个已配置的模型。</div>'; return; }
+      if (!models.length) {
+        $("result-grid").innerHTML = S.job ?
+          `<div class="panel empty-note">这条记录没有${esc(familyNames[S.family])}的结果。<br>可开始本组新实验，或查看本组历史。<br><button class="small" style="margin-top:12px" data-action="history">查看本组历史</button></div>` :
+          '<div class="panel empty-note">请先选择至少一个已配置的模型。</div>';
+        return;
+      }
       $("result-grid").innerHTML = models.map((model,index) => {
         const sample = samples.find(row => row.model_id === model.id), label = modelLabel(model.id), url = imageURL(sample);
         const rating = score(sample?.rating), fastest = !S.blind && best !== null && sample?.elapsed_ms === best && sample.status === "success";
@@ -589,25 +656,28 @@
     }
     function renderSummary() {
       const job = S.job;
-      if (!job || S.blind) {
-        $("speed-chart").innerHTML = `<p class="empty-note">${S.blind ? "速度与模型排名已隐藏。先评价图像，再关闭盲评揭晓结果。" : "生成完成后，这里会显示真实耗时和人工评分。"}</p>`;
+      $("timing-label").textContent = familyNames[S.family] + " · " + (job?.source === "legacy" ? "旧口径：API 响应" : "端到端耗时");
+      if (!job || S.blind || !modelsForView().length) {
+        $("speed-chart").innerHTML = `<p class="empty-note">${S.blind ? "速度与模型排名已隐藏。先评价图像，再关闭盲评揭晓结果。" : job ? "当前记录没有这个模型组的数据，不会混入其他实验的统计。" : "生成完成后，这里会显示真实耗时和人工评分。"}</p>`;
         $("summary-table").replaceChildren(); $("sample-table").replaceChildren(); $("all-rounds").hidden = true;
         $("method-note").textContent = "人工评分未填写时保持为空；文字等不适用项目不计入均分。"; return;
       }
-      const stats = job.summary, valid = stats.filter(row => Number.isFinite(row.mean_ms));
+      const ids = new Set(modelsForView().map(model => model.id));
+      const stats = job.summary.filter(row => ids.has(row.model_id)), valid = stats.filter(row => Number.isFinite(row.mean_ms));
       const max = valid.length ? Math.max(...valid.map(row => row.mean_ms)) : 1, min = valid.length ? Math.min(...valid.map(row => row.mean_ms)) : null;
-      $("timing-label").textContent = job.source === "legacy" ? "旧口径：API 响应耗时" : "端到端耗时 · 成功样本";
       $("speed-chart").innerHTML = stats.map(row => `<div class="speed-row"><span>${esc(modelLabel(row.model_id))}</span><div class="bar-track">${Number.isFinite(row.mean_ms) ? `<div class="bar-fill ${row.mean_ms === min ? "best" : ""}" style="width:${max > 0 ? Math.max(1,row.mean_ms/max*100) : 1}%"></div>` : ""}</div><span class="speed-value mono">${seconds(row.mean_ms)} s</span><span class="hint run-count">${row.successes} 张成功</span></div>`).join("");
       $("summary-table").innerHTML = `<table><thead><tr><th>模型</th><th>均值</th><th>P50</th><th>P95</th><th>成功 / 总数</th><th>人工均分</th></tr></thead><tbody>${stats.map(row => `<tr><td>${esc(modelLabel(row.model_id))}</td><td>${seconds(row.mean_ms)} s</td><td>${seconds(row.median_ms)} s</td><td>${seconds(row.p95_ms)} s</td><td>${row.successes} / ${job.samples.filter(sample => sample.model_id === row.model_id).length}${row.failures ? ` · ${row.failures} 失败` : ""}</td><td>${Number.isFinite(row.rating_mean) ? row.rating_mean.toFixed(2) + " / 5" : "尚未评分"} <span class="hint">(${row.rated_count} 张)</span></td></tr>`).join("")}</tbody></table>`;
       $("method-note").textContent = (job.source === "legacy" ? "旧脚本计时不含解码和保存，不能直接与新实验的端到端耗时混比。 " : "端到端耗时包含网络、图片传输、解码与原图保存，不含英文准备、鉴权、排队和归档副本写入；并非纯模型推理时间。 ") + "不同语言版本不是严格相同字符串的对比。均值 / P50 / P95 只使用当前实验的成功样本。" + (stats.some(row => row.successes < 5) ? " 样本不足 5 张，尤其 P95 仅作描述性参考，不能据此推断稳定排名。" : "") + " 人工均分只包含已评图片的已评项目。";
       $("all-rounds").hidden = false;
-      $("sample-table").innerHTML = `<table><thead><tr><th>轮次</th><th>模型</th><th>提示词</th><th>状态</th><th>耗时</th><th>实际尺寸</th><th>评分</th></tr></thead><tbody>${job.samples.map(sample => `<tr><td>${sample.round}</td><td>${esc(modelLabel(sample.model_id))}</td><td>${sample.prompt_variant?.includes("english") ? "英文版本" : "原文"}</td><td title="${esc(sample.error || "")}">${esc(statusNames[sample.status] || sample.status)}</td><td>${seconds(sample.elapsed_ms)} s</td><td>${sample.width ? `${sample.width} × ${sample.height}` : "—"}</td><td>${score(sample.rating)?.toFixed(1) || "—"}</td></tr>`).join("")}</tbody></table>`;
+      $("sample-table").innerHTML = `<table><thead><tr><th>轮次</th><th>模型</th><th>提示词</th><th>状态</th><th>耗时</th><th>实际尺寸</th><th>评分</th></tr></thead><tbody>${samplesForView().map(sample => `<tr><td>${sample.round}</td><td>${esc(modelLabel(sample.model_id))}</td><td>${sample.prompt_variant?.includes("english") ? "英文版本" : "原文"}</td><td title="${esc(sample.error || "")}">${esc(statusNames[sample.status] || sample.status)}</td><td>${seconds(sample.elapsed_ms)} s</td><td>${sample.width ? `${sample.width} × ${sample.height}` : "—"}</td><td>${score(sample.rating)?.toFixed(1) || "—"}</td></tr>`).join("")}</tbody></table>`;
     }
     function tickClocks() {
       document.querySelectorAll("[data-clock]").forEach(element => { const since = Date.parse(element.dataset.clock); if (Number.isFinite(since)) element.textContent = Math.max(0,(Date.now()-since)/1000).toFixed(1); });
     }
     function renderHistory() {
-      $("history-list").innerHTML = S.history.length ? S.history.map(job => `<button class="history-row ${job.id === S.job?.id ? "selected" : ""}" data-open="${esc(job.id)}"><span class="history-copy"><span class="history-meta">${esc(dateText(job.created_at))} · ${job.source === "legacy" ? "原有记录 / API 口径" : "新实验 / 端到端"}${job.topic ? " · " + esc(job.topic) : ""}</span><span class="history-prompt">${esc(job.prompt || "原提示词未记录")}</span><span class="history-meta">${job.model_ids.length} 模型 · ${job.runs} 轮 · ${job.completed}/${job.total} 完成 · ${job.ratings_count} 张已评</span></span><span class="badge ${job.status === "completed" ? "success" : job.status === "failed" ? "danger" : ""}">${esc(statusNames[job.status] || job.status)}</span></button>`).join("") : '<p class="empty-note">还没有保存的实验。</p>';
+      const entries = S.history.filter(historyMatches);
+      $("history-title").textContent = "实验历史 · " + familyNames[S.family];
+      $("history-list").innerHTML = entries.length ? entries.map(job => `<button class="history-row ${job.id === S.job?.id ? "selected" : ""}" data-open="${esc(job.id)}"><span class="history-copy"><span class="history-meta">${esc(dateText(job.created_at))} · ${job.source === "legacy" ? "原有记录 / API 口径" : "新实验 / 端到端"}${job.topic ? " · " + esc(job.topic) : ""}</span><span class="history-prompt">${esc(job.prompt || "原提示词未记录")}</span><span class="history-meta">整轮 ${job.model_ids.length} 模型 · ${job.runs} 轮 · ${job.completed}/${job.total} 完成 · ${job.ratings_count} 张已评</span></span><span class="badge ${job.status === "completed" ? "success" : job.status === "failed" ? "danger" : ""}">${esc(statusNames[job.status] || job.status)}</span></button>`).join("") : `<p class="empty-note">还没有包含${esc(familyNames[S.family])}的实验。</p>`;
     }
     function openSettings(focusId) {
       if (!S.config) return;
@@ -620,7 +690,7 @@
         <div class="field"><label for="policy-${index}">默认提示词策略</label><select id="policy-${index}" data-field="prompt_policy"><option value="original" ${model.prompt_policy !== "english" ? "selected" : ""}>保留原文</option><option value="english" ${model.prompt_policy === "english" ? "selected" : ""}>中文指令需要英文版本</option></select><p class="hint">这是可调整的发送策略，不是“中文完全不受支持”的声明。</p></div>
         ${model.id === "flux-2-flex" ? `<div class="two-col"><div class="field"><label for="steps-${index}">Flex steps（1–50）</label><input id="steps-${index}" data-field="flux_steps" type="number" min="1" max="50" step="1" value="${model.flux_steps ?? 50}"></div><div class="field"><label for="guidance-${index}">Flex guidance（1.5–10）</label><input id="guidance-${index}" data-field="flux_guidance" type="number" min="1.5" max="10" step="any" value="${model.flux_guidance ?? 4.5}"></div></div>` : ""}
         <label class="check-label"><input type="checkbox" data-field="enabled" ${model.enabled ? "checked" : ""}>启用此模型</label>
-        ${model.id === "gpt-image-2-5" ? '<p class="hint" style="margin-top:10px">这是待接入的用户预留位，不代表远端已提供 GPT Image 2.5。需要实际可用、兼容同步 GPT Images API 的部署。</p>' : model.id === "flux-1-kontext-pro" ? '<p class="hint" style="margin-top:10px">Kontext 使用 flux-kontext-pro 路由，也接受资源提供的 Images API。中文可靠性未建立，建议保留英文路径供比较。</p>' : model.provider === "flux" ? '<p class="hint" style="margin-top:10px">FLUX.2 必须使用对应的 flux-2-pro / flux-2-flex BFL 原生路由。官方说明支持多语言；文字渲染效果仍需单独评价。</p>' : ""}
+        ${model.id.startsWith("gpt-image-2-5") ? '<p class="hint" style="margin-top:10px">Flare 与 Sunburst 使用各自的部署和结果记录，不合并为一个模型。请填写自己的实际部署；默认使用共同支持的尺寸与质量。</p>' : model.id === "flux-1-kontext-pro" ? '<p class="hint" style="margin-top:10px">Kontext 使用 flux-kontext-pro 路由，也接受资源提供的 Images API。中文可靠性未建立，建议保留英文路径供比较。</p>' : model.provider === "flux" ? '<p class="hint" style="margin-top:10px">FLUX.2 必须使用对应的 flux-2-pro / flux-2-flex BFL 原生路由。官方说明支持多语言；文字渲染效果仍需单独评价。</p>' : ""}
       </details>`).join("");
       const translation = S.config.translation || {};
       $("translation-endpoint").value = translation.endpoint || ""; $("translation-deployment").value = translation.deployment || "";
@@ -663,6 +733,12 @@
     $("language-mode").addEventListener("change", updateActions);
     $("model-list").addEventListener("change", event => { const id = event.target.dataset.model; if (!id) return; if (event.target.checked) S.selected.add(id); else S.selected.delete(id); updateSize(); if (!S.job) render(); });
     $("runs").addEventListener("input", updateActions);
+    ["size","quality","mode"].forEach(id => $(id).addEventListener("change", updateActions));
+    $("family-bar").addEventListener("click", event => { const button = event.target.closest("[data-family]"); if (button && !button.disabled) setFamily(button.dataset.family); });
+    $("experiment-form").addEventListener("invalid", event => {
+      let details = event.target.closest("details");
+      while (details) { details.open = true; details = details.parentElement?.closest("details"); }
+    }, true);
     $("model-list").addEventListener("click", event => { const row = event.target.closest(".unavailable"); if (row && !event.target.matches("input")) openSettings(row.querySelector("[data-model]").dataset.model); });
     $("experiment-form").addEventListener("submit", async event => {
       event.preventDefault(); if (!event.currentTarget.reportValidity() || S.activeId || S.starting) return;
@@ -685,7 +761,7 @@
       $("prompt").value = job.prompt; $("prompt").dispatchEvent(new Event("input"));
       $("topic").value = job.topic || "";
       $("english-prompt").value = job.english_prompt || ""; $("language-mode").value = job.language_mode || "original_all";
-      S.selected = new Set(job.model_ids.filter(id => availableModels().some(model => model.id === id)));
+      S.selected = new Set(job.model_ids.filter(id => availableModels().some(model => model.id === id && inFamily(model))));
       $("runs").value = String(Math.min(10,job.runs)); $("mode").value = job.mode;
       if (["low","medium","high","auto"].includes(job.gpt_quality)) $("quality").value = job.gpt_quality;
       syncModelInputs(); if ([...$("size").options].some(option => option.value === job.size)) $("size").value = job.size;
@@ -693,7 +769,7 @@
     });
     $("blind-button").addEventListener("click", () => { S.blind = !S.blind; if (S.blind) S.order = shuffle(modelsForView().map(model => model.id)); S.signature = ""; render(); });
     $("round").addEventListener("change", () => { S.round = Number($("round").value); render(); });
-    $("result-grid").addEventListener("click", event => { const button = event.target.closest("[data-action]"); if (!button || button.disabled) return; if (button.dataset.action === "zoom") openZoom(button.dataset.sample); if (button.dataset.action === "rate") openRating(button.dataset.sample); });
+    $("result-grid").addEventListener("click", event => { const button = event.target.closest("[data-action]"); if (!button || button.disabled) return; if (button.dataset.action === "zoom") openZoom(button.dataset.sample); if (button.dataset.action === "rate") openRating(button.dataset.sample); if (button.dataset.action === "history") $("history-button").click(); });
     $("history-button").addEventListener("click", async () => { try { const boot = await api("/api/bootstrap"); S.history = boot.history; renderHistory(); $("history-dialog").showModal(); } catch (err) { error("无法读取历史：" + err.message); } });
     $("history-list").addEventListener("click", event => { const button = event.target.closest("[data-open]"); if (button) { $("history-dialog").close(); loadJob(button.dataset.open); } });
     $("return-active").addEventListener("click", () => { if (S.activeId) loadJob(S.activeId); });
@@ -710,7 +786,6 @@
       finally { renderArchive(); }
     });
     $("settings-button").addEventListener("click", () => openSettings());
-    $("configure-future").addEventListener("click", () => openSettings("gpt-image-2-5"));
     $("settings-form").addEventListener("submit", async event => {
       event.preventDefault(); if (!event.currentTarget.reportValidity() || S.activeId) return;
       const payload = structuredClone(S.config); payload.subscription_id = $("subscription").value.trim(); payload.resource_group = $("resource-group").value.trim();
@@ -728,7 +803,7 @@
       $("save-settings").disabled = true; $("settings-error").textContent = "";
       try {
         S.config = await api("/api/config",{method:"PUT",body:JSON.stringify(payload)});
-        S.selected = new Set([...S.selected].filter(id => availableModels().some(model => model.id === id)));
+        S.selected = new Set([...S.selected].filter(id => availableModels().some(model => model.id === id && inFamily(model))));
         syncModelInputs(); S.signature = ""; render(); $("settings-dialog").close();
         toast("配置已保存。远端可用性以实际调用为准；变更部署后旧版本标记会清空。");
       } catch (err) { $("settings-error").textContent = err.message; }

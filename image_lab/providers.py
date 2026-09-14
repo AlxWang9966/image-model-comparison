@@ -29,6 +29,7 @@ MODEL_PROVIDERS = {
     "flux-1-kontext-pro": "flux",
     "flux-2-pro": "flux",
     "flux-2-flex": "flux",
+    "gpt-image-2-5-sunburst": "gpt",
 }
 LEGACY_MODEL_IDS = frozenset(("mai-image-2-5", "gpt-image-2", "gpt-image-2-5", "flux-1-kontext-pro"))
 GPT_SIZES = ("1024x1024", "1536x1024", "1024x1536")
@@ -274,9 +275,16 @@ class TranslationConfig:
         }
 
 
-def new_flux_model(identifier: str) -> ModelConfig:
+def new_model_slot(identifier: str) -> ModelConfig:
+    if identifier == "gpt-image-2-5-sunburst":
+        return ModelConfig(
+            id=identifier, name="GPT Image 2.5 Sunburst", provider="gpt",
+            deployment="gpt-image-2.5-sunburst", endpoint="", auth_mode="azure_cli",
+            api_key_env="", api_key_header="api-key", version="",
+            supported_sizes=GPT_SIZES, enabled=False,
+        )
     if identifier not in ("flux-2-pro", "flux-2-flex"):
-        raise ValidationError("Only missing FLUX.2 slots can be added during migration.")
+        raise ValidationError("Unsupported missing model slot.")
     flex = identifier == "flux-2-flex"
     return ModelConfig(
         id=identifier, name="FLUX.2 Flex" if flex else "FLUX.2 Pro", provider="flux",
@@ -314,12 +322,12 @@ class AppConfig:
             raise ValidationError("request_timeout_seconds must be an integer from 30 to 600.")
         rows = raw.get("models")
         if not isinstance(rows, list) or not len(LEGACY_MODEL_IDS) <= len(rows) <= len(MODEL_PROVIDERS):
-            raise ValidationError("Keep the existing four slots and up to two FLUX.2 slots.")
+            raise ValidationError("Keep the original model slots; newer slots can be added automatically.")
         models = tuple(ModelConfig.parse(row) for row in rows)
         ids = {model.id for model in models}
         if len(ids) != len(models) or not LEGACY_MODEL_IDS.issubset(ids):
             raise ValidationError("Model slots must be unique and preserve the four original slots.")
-        models += tuple(new_flux_model(identifier) for identifier in MODEL_PROVIDERS if identifier not in ids)
+        models += tuple(new_model_slot(identifier) for identifier in MODEL_PROVIDERS if identifier not in ids)
         return cls(subscription, group, timeout, models, TranslationConfig.parse(raw.get("translation")))
 
     def public(self) -> dict[str, Any]:

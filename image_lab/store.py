@@ -107,6 +107,25 @@ def summarize(job: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def filter_job(job: dict[str, Any], provider: str) -> dict[str, Any]:
+    if provider not in ("all", "gpt", "flux", "mai"):
+        raise ValidationError("provider must be all, gpt, flux, or mai.")
+    if provider == "all":
+        return summarize(job)
+    selected = [model for model in job["models"] if model["provider"] == provider]
+    if not selected:
+        raise ValidationError("This experiment has no samples for the selected model family.")
+    result = copy.deepcopy(job)
+    ids = {model["id"] for model in selected}
+    result["models"] = selected
+    result["model_ids"] = [identifier for identifier in job["model_ids"] if identifier in ids]
+    result["samples"] = [sample for sample in result["samples"] if sample["model_id"] in ids]
+    result["view_filter"] = provider
+    result["unfiltered_model_count"] = len(job["model_ids"])
+    result["view_note"] = "Model/sample statistics are filtered; experiment-level metadata and the archive refer to the original complete run."
+    return summarize(result)
+
+
 def empty_sample(model_id: str, round_number: int, request: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": uuid.uuid4().hex[:16],
@@ -288,6 +307,7 @@ class RunStore:
                 })
                 result[-1].update(
                     topic=job.get("topic", ""),
+                    providers=sorted({model["provider"] for model in job["models"]}),
                     completed=sum(row["status"] in TERMINAL for row in job["samples"]),
                     total=len(job["samples"]),
                     ratings_count=sum(score(row.get("rating")) is not None for row in job["samples"]),

@@ -25,7 +25,7 @@ from .archive import ArchiveError, ImageArchive, prompt_topic
 from .locking import AlreadyRunningError, single_instance
 from .providers import AppConfig, Credentials, ModelConfig, ProviderError, ValidationError
 from .store import (
-    ACTIVE_JOBS, RATING_FIELDS, TERMINAL, RunStore, empty_sample, now_iso,
+    ACTIVE_JOBS, RATING_FIELDS, TERMINAL, RunStore, empty_sample, filter_job, now_iso,
     write_bytes_atomic, write_json_atomic,
 )
 
@@ -200,7 +200,7 @@ class Application:
                 }
                 retained = [
                     model.public() for model in self.config.models
-                    if model.id in ("flux-2-pro", "flux-2-flex") and model.id not in supplied
+                    if model.id in ("flux-2-pro", "flux-2-flex", "gpt-image-2-5-sunburst") and model.id not in supplied
                 ]
                 raw = {**raw, "models": [*raw["models"], *retained]}
             config = AppConfig.parse(raw)
@@ -504,19 +504,84 @@ def reject_json_constant(value: str) -> None:
     raise ValidationError(f"JSON must not contain {value}.")
 
 
+class BusyRequestHandler(BaseHTTPRequestHandler):
+    def handle(self) -> None:
+        self.connection.settimeout(1)
+        try:
+            super().handle()
+        except (ConnectionError, TimeoutError):
+            self.close_connection = True
+
+    def log_message(self, format: str, *args: Any) -> None:
+        LOG.warning("Local HTTP worker limit reached; request was not processed.")
+
+    def do_GET(self) -> None:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        if 0 < length <= 131072:
+            self.rfile.read(length)
+        body = b'{"error":"Local server is busy. Please try again shortly."}'
+        self.close_connection = True
+        self.send_response(503)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    do_POST = do_GET
+    do_PUT = do_GET
+
+
 class LocalServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+    max_http_workers = 16
 
     def __init__(self, address: tuple[str, int], app: Application) -> None:
         self.app = app
+        self.request_slots = threading.BoundedSemaphore(self.max_http_workers)
         super().__init__(address, RequestHandler)
+
+    def process_request(self, request: Any, client_address: Any) -> None:
+        if not self.request_slots.acquire(blocking=False):
+            try:
+                BusyRequestHandler(request, client_address, self)
+            finally:
+                self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except (OSError, RuntimeError, MemoryError):
+            self.request_slots.release()
+            self.shutdown_request(request)
+            raise
+
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self.request_slots.release()
 
 
 class RequestHandler(BaseHTTPRequestHandler):
     server: LocalServer
     server_version = f"ImageLab/{__version__}"
     protocol_version = "HTTP/1.1"
+
+    def setup(self) -> None:
+        super().setup()
+        self.connection.settimeout(15)
+
+    def handle(self) -> None:
+        try:
+            super().handle()
+        except (ConnectionError, TimeoutError):
+            self.close_connection = True
+            LOG.debug("Local browser closed its connection.")
 
     def log_message(self, format: str, *args: Any) -> None:
         if len(args) > 1 and str(args[1]).startswith(("4", "5")):
@@ -558,10 +623,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             raise HttpError(400, "Invalid UTF-8 JSON body.") from exc
 
     def _send(self, status: int, content: bytes, content_type: str, download: str | None = None) -> None:
+        self.close_connection = True
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header(
@@ -586,7 +653,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         try:
             self._check_client(mutate)
             action()
-        except (BrokenPipeError, ConnectionResetError, TimeoutError):
+        except (ConnectionError, TimeoutError):
             LOG.info("Local client disconnected or timed out.")
             self.close_connection = True
         except HttpError as exc:
@@ -631,10 +698,18 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif match := re.fullmatch(r"/api/jobs/([^/]+)(?:/export\.(json|csv))?", path):
             identifier, export = match.groups()
             job = app.store.get(identifier)
+            suffix = ""
+            if export:
+                query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query, keep_blank_values=True)
+                if set(query) - {"provider"} or len(query.get("provider", ["all"])) != 1:
+                    raise ValidationError("Exports accept a single provider filter.")
+                provider = query.get("provider", ["all"])[0]
+                job = filter_job(job, provider)
+                suffix = f"-{provider}" if provider != "all" else ""
             if export == "csv":
-                self._send(200, export_csv(job), "text/csv; charset=utf-8", f"image-lab-{identifier}.csv")
+                self._send(200, export_csv(job), "text/csv; charset=utf-8", f"image-lab-{identifier}{suffix}.csv")
             else:
-                self._json(200, job, f"image-lab-{identifier}.json" if export else None)
+                self._json(200, job, f"image-lab-{identifier}{suffix}.json" if export else None)
         elif match := re.fullmatch(r"/images/([^/]+)/([^/]+)", path):
             image_path = app.store.image_path(*match.groups())
             content_type = "image/png" if image_path.suffix == ".png" else "image/jpeg"

@@ -1,0 +1,47 @@
+{
+  "experiment_id": "6870d168a34e449eb37af098e2ec6816",
+  "topic": "gpt-2-vs-2.5-bookstore",
+  "prompt": "设计一张中文海报。主标题：‘春日读书会’。副标题：‘周末城市书展’。画面是明亮的书店橱窗、柔和阳光、绿色植物、桌上的书和咖啡，版式简洁高级，中文标题清晰居中，温暖自然的商业海报风格。",
+  "original_prompt": "设计一张中文海报。主标题：‘春日读书会’。副标题：‘周末城市书展’。画面是明亮的书店橱窗、柔和阳光、绿色植物、桌上的书和咖啡，版式简洁高级，中文标题清晰居中，温暖自然的商业海报风格。",
+  "effective_prompt": "设计一张中文海报。主标题：‘春日读书会’。副标题：‘周末城市书展’。画面是明亮的书店橱窗、柔和阳光、绿色植物、桌上的书和咖啡，版式简洁高级，中文标题清晰居中，温暖自然的商业海报风格。",
+  "prompt_variant": "original",
+  "image_request_started": true,
+  "prompt_recorded": true,
+  "model": {
+    "id": "gpt-image-2",
+    "name": "GPT Image 2",
+    "provider": "gpt",
+    "version": "2026-04-21"
+  },
+  "round": 1,
+  "status": "success",
+  "created_at": "2026-09-11T08:39:17.704+00:00",
+  "source": "live",
+  "mode": "parallel",
+  "requested_size": "1024x1024",
+  "request_parameters": {
+    "size": "1024x1024",
+    "n": 1,
+    "quality": "medium",
+    "output_format": "png"
+  },
+  "timing": {
+    "scope": "end_to_end",
+    "elapsed_ms": 64730.141,
+    "api_ms": 64713.854,
+    "download_ms": 0.0,
+    "save_ms": 6.276
+  },
+  "image": {
+    "status": "available",
+    "file": "gpt-image-2/round-01_gpt-image-2_gpt-2-vs-2.5-books.png",
+    "width": 1024,
+    "height": 1024,
+    "bytes": 1442105,
+    "sha256": "9f3cb24c7787426b3852a0a4f5c6aa6e15735749c417f2de1680887658d68136"
+  },
+  "http_error_code": null,
+  "diagnostic_note": null,
+  "human_review": null,
+  "reviews_included": false
+}
