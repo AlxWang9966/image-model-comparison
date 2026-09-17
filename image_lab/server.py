@@ -20,12 +20,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from . import __version__, prompts, providers
+from . import __version__, prompts, providers, references, reports
 from .archive import ArchiveError, ImageArchive, prompt_topic
 from .locking import AlreadyRunningError, single_instance
 from .providers import AppConfig, Credentials, ModelConfig, ProviderError, ValidationError
+from .references import ReferenceStore
 from .store import (
-    ACTIVE_JOBS, RATING_FIELDS, TERMINAL, RunStore, empty_sample, filter_job, now_iso,
+    ACTIVE_JOBS, EDIT_RATING_FIELDS, RATING_FIELDS, TERMINAL, RunStore, empty_sample, filter_job, now_iso,
     write_bytes_atomic, write_json_atomic,
 )
 
@@ -46,7 +47,7 @@ class HttpError(RuntimeError):
 
 def parse_job_input(raw: Any, config: AppConfig) -> tuple[dict[str, Any], list[ModelConfig]]:
     expected = {"prompt", "model_ids", "size", "gpt_quality", "runs", "mode"}
-    optional = {"topic", "english_prompt", "language_mode"}
+    optional = {"topic", "english_prompt", "language_mode", "operation", "reference_image_id", "reference_consent"}
     if not isinstance(raw, dict) or not expected.issubset(raw) or set(raw) - expected - optional:
         raise ValidationError("Supply the experiment settings, with optional topic, english_prompt, and language_mode.")
     prompt = raw["prompt"]
@@ -64,6 +65,22 @@ def parse_job_input(raw: Any, config: AppConfig) -> tuple[dict[str, Any], list[M
     language_mode = raw.get("language_mode", "model_defaults")
     if language_mode not in prompts.LANGUAGE_MODES:
         raise ValidationError("Invalid language_mode.")
+    operation = raw.get("operation", "generate")
+    if operation not in ("generate", "edit"):
+        raise ValidationError("operation must be generate or edit.")
+    reference_id = raw.get("reference_image_id", "")
+    if not isinstance(reference_id, str):
+        raise ValidationError("reference_image_id must be a string.")
+    if operation == "edit":
+        if not references.REFERENCE_ID.fullmatch(reference_id):
+            raise ValidationError("Upload one reference image before starting an editing comparison.")
+        if raw.get("reference_consent") is not True:
+            raise ValidationError("Confirm permission to send the source image and instruction to the selected model services.")
+        capability = references.capabilities()
+        if not capability["available"]:
+            raise ValidationError(capability["reason"])
+    elif reference_id or raw.get("reference_consent"):
+        raise ValidationError("A reference image is only valid in editing mode.")
     identifiers = raw["model_ids"]
     if (
         not isinstance(identifiers, list) or not 1 <= len(identifiers) <= len(providers.MODEL_PROVIDERS)
@@ -88,7 +105,8 @@ def parse_job_input(raw: Any, config: AppConfig) -> tuple[dict[str, Any], list[M
     if raw["mode"] not in ("parallel", "sequential"):
         raise ValidationError("mode must be parallel or sequential.")
     for model in models:
-        providers.build_request(model, prompt.strip(), raw["size"], raw["gpt_quality"])
+        builder = providers.build_edit_request if operation == "edit" else providers.build_request
+        builder(model, prompt.strip(), raw["size"], raw["gpt_quality"])
     translation_needed = (
         not english and prompts.needs_english_version(prompt)
         and any(prompts.uses_english(model, language_mode) for model in models)
@@ -102,6 +120,8 @@ def parse_job_input(raw: Any, config: AppConfig) -> tuple[dict[str, Any], list[M
     return {
         **raw, "prompt": prompt.strip(), "topic": prompt_topic(prompt, topic),
         "english_prompt": english, "language_mode": language_mode,
+        "operation": operation,
+        **({"reference_image_id": reference_id, "reference_consent": True} if operation == "edit" else {}),
     }, models
 
 
@@ -113,8 +133,11 @@ def planned_sample(model: ModelConfig, number: int, params: dict[str, Any]) -> d
         text, variant = "", "pending_english"
     else:
         text, variant = params["prompt"], "original"
-    sample = empty_sample(model.id, number, providers.build_request(model, text, params["size"], params["gpt_quality"]))
+    builder = providers.build_edit_request if params.get("operation") == "edit" else providers.build_request
+    sample = empty_sample(model.id, number, builder(model, text, params["size"], params["gpt_quality"]))
     sample.update(original_prompt=params["prompt"], effective_prompt=text or None, prompt_variant=variant)
+    if params.get("operation") == "edit":
+        sample["request_endpoint"] = providers.edit_endpoint(model)
     return sample
 
 
@@ -139,6 +162,7 @@ class Application:
         self.config_path = config_path
         self.config = load_config(root, config_path)
         self.store = RunStore(output)
+        self.references = ReferenceStore(output)
         if import_legacy:
             self.store.import_legacy(root, self.config)
         self.credentials = Credentials()
@@ -149,6 +173,7 @@ class Application:
         self.worker: threading.Thread | None = None
         self.archive_dir = (archive_dir or root / "image-lab-archive").resolve()
         self.archive_lock = threading.Lock()
+        self.report_lock = threading.Lock()
         for item in self.store.history():
             self.sync_archive(item["id"])
 
@@ -175,6 +200,29 @@ class Application:
         self.store.rate(identifier, sample_id, data)
         return self.sync_archive(identifier)
 
+    def export_report(self, identifier: str, data: Any) -> dict[str, Any]:
+        expected = {"provider", "include_images", "include_notes", "share_acknowledged"}
+        if not isinstance(data, dict) or set(data) != expected:
+            raise ValidationError("Specify provider, include_images, include_notes, and share_acknowledged.")
+        if data["share_acknowledged"] is not True:
+            raise ValidationError("请确认报告可能包含图像、提示词和人工备注，并在对外分享前审核。")
+        if type(data["include_images"]) is not bool or type(data["include_notes"]) is not bool:
+            raise ValidationError("Report options must be booleans.")
+        if not self.report_lock.acquire(blocking=False):
+            raise ConflictError("另一个报告正在导出，请稍后再试。")
+        try:
+            snapshot = self.store.get(identifier)
+            content = reports.render_report(
+                self.store, identifier, data["provider"],
+                include_images=data["include_images"], include_notes=data["include_notes"], snapshot=snapshot,
+            )
+            return self.store.save_report(
+                identifier, content, provider=data["provider"], include_images=data["include_images"],
+                include_notes=data["include_notes"], source_updated_at=snapshot["updated_at"],
+            )
+        finally:
+            self.report_lock.release()
+
     def bootstrap(self) -> dict[str, Any]:
         with self.lock:
             return {
@@ -183,6 +231,7 @@ class Application:
                 "history": self.store.history(),
                 "warnings": list(self.store.warnings),
                 "active_job_id": self.active_job_id,
+                "editing": references.capabilities(),
             }
 
     def save_config(self, raw: Any) -> dict[str, Any]:
@@ -200,7 +249,7 @@ class Application:
                 }
                 retained = [
                     model.public() for model in self.config.models
-                    if model.id in ("flux-2-pro", "flux-2-flex", "gpt-image-2-5-sunburst") and model.id not in supplied
+                    if model.id not in providers.LEGACY_MODEL_IDS and model.id not in supplied
                 ]
                 raw = {**raw, "models": [*raw["models"], *retained]}
             config = AppConfig.parse(raw)
@@ -216,6 +265,14 @@ class Application:
             params, models = parse_job_input(raw, config)
             identifier = uuid.uuid4().hex
             created = now_iso()
+            reference = None
+            if params["operation"] == "edit":
+                reference, content = self.references.get(params["reference_image_id"])
+                reference = {
+                    **reference, "filename": "reference.png",
+                    "image_url": f"/images/{identifier}/reference.png",
+                }
+                write_bytes_atomic(self.store.output / identifier / "reference.png", content)
             job = {
                 "schema_version": 1,
                 "id": identifier,
@@ -236,6 +293,22 @@ class Application:
                 "translation": {"status": "not_needed", "elapsed_ms": None, "api_ms": None, "request_attempted": False},
                 "warnings": [],
             }
+            if reference:
+                job["reference_image"] = reference
+                for sample in job["samples"]:
+                    sample["reference_sha256"] = reference["sha256"]
+                    sample["reference_filename"] = "reference.png"
+                job["warnings"].append(
+                    "Editing trial: all models receive the same normalized reference PNG. "
+                    "Output success confirms the API ran, not that the edit is visually correct. "
+                    "Human review unlocks only after all participating models/rounds finish successfully."
+                )
+                if f"{reference['width']}x{reference['height']}" != params["size"]:
+                    job["warnings"].append(
+                        "The reference dimensions differ from the requested output size. "
+                        "The source is not resized/cropped locally; providers may change output geometry. "
+                        "MAI edits use their native output size rather than a size parameter."
+                    )
             self.store.add(job)
             self.active_job_id = identifier
             self.cancel_event = threading.Event()
@@ -288,7 +361,7 @@ class Application:
                     self.store.update_sample(
                         identifier, sample["id"], effective_prompt=result.english_prompt,
                         prompt_variant="translated_english",
-                        request=providers.build_request(
+                        request=(providers.build_edit_request if job.get("operation") == "edit" else providers.build_request)(
                             model_map[sample["model_id"]], result.english_prompt, job["size"], job["gpt_quality"],
                         ),
                     )
@@ -319,6 +392,10 @@ class Application:
     ) -> None:
         try:
             self.store.update_job(identifier, status="preparing")
+            reference = (
+                self.store.reference_bytes(identifier)
+                if self.store.get(identifier).get("operation") == "edit" else None
+            )
             self._prepare_prompts(identifier, config, models, cancel_event)
             ready = []
             for model in models:
@@ -353,7 +430,7 @@ class Application:
                     if job["mode"] == "parallel":
                         futures = [
                             executor.submit(
-                                self._run_sample, identifier, rows[model.id], model, config, cancel_event,
+                                self._run_sample, identifier, rows[model.id], model, config, cancel_event, reference,
                             )
                             for model in ready
                         ]
@@ -365,7 +442,7 @@ class Application:
                         for model in ready[offset:] + ready[:offset]:
                             if cancel_event.is_set():
                                 break
-                            self._run_sample(identifier, rows[model.id], model, config, cancel_event)
+                            self._run_sample(identifier, rows[model.id], model, config, cancel_event, reference)
             if cancel_event.is_set():
                 self._finish_remaining(identifier, "cancelled", "Stopped before sending a generation request.")
                 status = "cancelled"
@@ -388,7 +465,7 @@ class Application:
 
     def _run_sample(
         self, identifier: str, sample: dict[str, Any], model: ModelConfig,
-        config: AppConfig, cancel_event: threading.Event,
+        config: AppConfig, cancel_event: threading.Event, reference: bytes | None = None,
     ) -> None:
         if cancel_event.is_set():
             return
@@ -408,7 +485,11 @@ class Application:
         self.store.update_sample(identifier, sample["id"], status="running", started_at=now_iso())
         started = time.perf_counter()
         try:
-            image = providers.generate(model, sample["request"], headers, config.request_timeout_seconds)
+            image = (
+                providers.edit(model, sample["request"], headers, config.request_timeout_seconds, reference)
+                if reference is not None else
+                providers.generate(model, sample["request"], headers, config.request_timeout_seconds)
+            )
             filename = f"{sample['id']}.{image.extension}"
             save_started = time.perf_counter()
             write_bytes_atomic(self.store.output / identifier / filename, image.content)
@@ -458,11 +539,12 @@ def csv_value(value: Any) -> Any:
 def export_csv(job: dict[str, Any]) -> bytes:
     output = io.StringIO(newline="")
     fields = [
-        "experiment_id", "created_at", "source", "timing_scope", "model", "model_id",
+        "experiment_id", "created_at", "source", "operation", "reference_sha256", "reference_width", "reference_height",
+        "review_ready", "timing_scope", "model", "model_id",
         "deployment", "model_version", "topic", "prompt", "original_prompt", "effective_prompt",
         "prompt_variant", "language_mode", "translation_ms", "requested_size", "gpt_quality", "mode",
         "round", "status", "elapsed_seconds", "api_seconds", "download_seconds", "save_seconds",
-        "actual_width", "actual_height", "output_bytes", *RATING_FIELDS, "notes",
+        "actual_width", "actual_height", "output_bytes", *RATING_FIELDS, "preservation", "notes",
         "image_file", "error", "warnings", "request_json", "revised_prompt",
     ]
     writer = csv.DictWriter(output, fieldnames=fields, lineterminator="\r\n")
@@ -474,6 +556,11 @@ def export_csv(job: dict[str, Any]) -> bytes:
         row = {
             "experiment_id": job["id"], "created_at": job["created_at"],
             "source": job["source"], "timing_scope": job["timing_scope"],
+            "operation": job.get("operation", "generate"),
+            "reference_sha256": job.get("reference_image", {}).get("sha256"),
+            "reference_width": job.get("reference_image", {}).get("width"),
+            "reference_height": job.get("reference_image", {}).get("height"),
+            "review_ready": job.get("review_ready"),
             "model": model["name"], "model_id": model["id"],
             "deployment": model["deployment"], "model_version": model.get("version", ""),
             "topic": job.get("topic", ""), "prompt": job["prompt"],
@@ -487,7 +574,7 @@ def export_csv(job: dict[str, Any]) -> bytes:
             "mode": job["mode"], "round": sample["round"], "status": sample["status"],
             "actual_width": sample.get("width"), "actual_height": sample.get("height"),
             "output_bytes": sample.get("output_bytes"),
-            **{field: rating.get(field) for field in RATING_FIELDS},
+            **{field: rating.get(field) for field in {*RATING_FIELDS, *EDIT_RATING_FIELDS}},
             "notes": rating.get("notes", ""), "image_file": sample.get("filename"),
             "error": sample.get("error"), "warnings": " | ".join(sample.get("warnings", [])),
             "request_json": json.dumps(sample.get("request", {}), ensure_ascii=False),
@@ -602,21 +689,25 @@ class RequestHandler(BaseHTTPRequestHandler):
             if not secrets.compare_digest(token.encode("utf-8"), self.server.app.csrf_token.encode("ascii")):
                 raise HttpError(403, "Missing or expired local request token. Reload the page.")
 
-    def _read_json(self) -> Any:
-        if self.headers.get_content_type() != "application/json":
-            raise HttpError(415, "Use Content-Type: application/json.")
+    def _read_body(self, maximum: int) -> bytes:
         if self.headers.get("Transfer-Encoding"):
             raise HttpError(400, "Transfer-Encoding is not supported.")
         try:
             length = int(self.headers.get("Content-Length", "-1"))
         except ValueError as exc:
             raise HttpError(400, "Invalid Content-Length.") from exc
-        if not 0 <= length <= 131072:
-            raise HttpError(413, "Request body must not exceed 128 KB.")
+        if not 0 <= length <= maximum:
+            raise HttpError(413, f"Request body must not exceed {maximum} bytes.")
         self.connection.settimeout(15)
         body = self.rfile.read(length)
         if len(body) != length:
             raise HttpError(400, "Incomplete request body.")
+        return body
+
+    def _read_json(self) -> Any:
+        if self.headers.get_content_type() != "application/json":
+            raise HttpError(415, "Use Content-Type: application/json.")
+        body = self._read_body(131072)
         try:
             return json.loads(body.decode("utf-8"), parse_constant=reject_json_constant)
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -695,6 +786,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "active_job_id": app.active_job_id})
         elif path == "/api/bootstrap":
             self._json(200, app.bootstrap())
+        elif match := re.fullmatch(r"/references/([0-9a-f]{32})/reference\.png", path):
+            _, image = app.references.get(match[1])
+            self._send(200, image, "image/png")
+        elif match := re.fullmatch(r"/api/jobs/([^/]+)/reports/([0-9a-f]{32})\.html", path):
+            content = app.store.report_content(match[1], match[2])
+            self._send(200, content, "text/html; charset=utf-8", f"image-lab-report-{match[1]}-{match[2][:8]}.html")
         elif match := re.fullmatch(r"/api/jobs/([^/]+)(?:/export\.(json|csv))?", path):
             identifier, export = match.groups()
             job = app.store.get(identifier)
@@ -719,6 +816,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def _post(self) -> None:
         path = self._path()
+        if path == "/api/references":
+            if self.headers.get_content_type() not in ("image/png", "image/jpeg"):
+                raise HttpError(415, "Reference uploads must use image/png or image/jpeg.")
+            content = self._read_body(references.MAX_UPLOAD_BYTES)
+            self._json(201, self.server.app.references.add(content))
+            return
         data = self._read_json()
         if path == "/api/jobs":
             self._json(202, self.server.app.create_job(data))
@@ -733,6 +836,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             if job["status"] in ACTIVE_JOBS:
                 raise ConflictError("The readable archive is finalized when the experiment finishes.")
             self._json(200, self.server.app.sync_archive(match[1]))
+        elif match := re.fullmatch(r"/api/jobs/([^/]+)/report", path):
+            self._json(201, self.server.app.export_report(match[1], data))
         else:
             raise HttpError(404, "Not found.")
 
@@ -741,6 +846,10 @@ class RequestHandler(BaseHTTPRequestHandler):
         data = self._read_json()
         if path == "/api/config":
             self._json(200, self.server.app.save_config(data))
+        elif match := re.fullmatch(r"/api/jobs/([^/]+)/pin", path):
+            if not isinstance(data, dict) or set(data) != {"pinned"}:
+                raise ValidationError("Pin updates expect only the pinned boolean.")
+            self._json(200, self.server.app.store.pin(match[1], data["pinned"]))
         elif match := re.fullmatch(r"/api/jobs/([^/]+)/samples/([^/]+)/rating", path):
             self._json(200, self.server.app.rate(match[1], match[2], data))
         else:

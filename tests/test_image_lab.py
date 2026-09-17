@@ -43,6 +43,7 @@ def config_data():
     data["resource_group"] = "image-lab-tests"
     endpoints = {
         "mai-image-2-5": "https://example.services.ai.azure.com/mai/v1/images/generations",
+        "mai-image-2-6": "https://example.services.ai.azure.com/mai/v1/images/generations",
         "gpt-image-2": "https://example.openai.azure.com/openai/deployments/gpt-image-2/images/generations?api-version=2025-04-01-preview",
         "flux-1-kontext-pro": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-kontext-pro?api-version=preview",
         "flux-2-pro": "https://example.services.ai.azure.com/providers/blackforestlabs/v1/flux-2-pro?api-version=preview",
@@ -78,7 +79,7 @@ class ProviderTests(unittest.TestCase):
         cli.start()
         self.addCleanup(cli.stop)
         self.config = AppConfig.parse(config_data())
-        self.mai, self.gpt, self.future, self.flux, self.flux_pro, self.flux_flex, self.sunburst = self.config.models
+        self.mai, self.gpt, self.future, self.flux, self.flux_pro, self.flux_flex, self.sunburst, self.mai26 = self.config.models
 
     def test_flux_two_requests_use_native_dimensions_and_record_flex_controls(self):
         pro = build_request(self.flux_pro, "Red cube", "2048x2048", "medium")
@@ -109,7 +110,7 @@ class ProviderTests(unittest.TestCase):
         for model in original["models"]:
             model.pop("prompt_policy", None)
         migrated = AppConfig.parse(original)
-        self.assertEqual(len(migrated.models), 7)
+        self.assertEqual(len(migrated.models), len(self.config.models))
         self.assertEqual(migrated.models[0].endpoint, original["models"][0]["endpoint"])
         self.assertTrue(all(not model.enabled for model in migrated.models[4:]))
         self.assertFalse(migrated.translation.enabled)
@@ -136,9 +137,39 @@ class ProviderTests(unittest.TestCase):
         original["models"][2]["name"] = "My existing GPT 2.5 configuration"
         migrated = AppConfig.parse(original)
         self.assertEqual(migrated.models[2].name, original["models"][2]["name"])
-        self.assertEqual(migrated.models[-1].id, "gpt-image-2-5-sunburst")
-        self.assertFalse(migrated.models[-1].enabled)
-        self.assertFalse(migrated.models[-1].endpoint)
+        sunburst = next(model for model in migrated.models if model.id == "gpt-image-2-5-sunburst")
+        self.assertFalse(sunburst.enabled)
+        self.assertFalse(sunburst.endpoint)
+
+    def test_seven_slot_config_adds_disabled_mai26_without_reusing_a_connection(self):
+        original = config_data()
+        original["models"] = original["models"][:7]
+        original["models"][0].update(name="Existing MAI 2.5", version="kept-version")
+        migrated = AppConfig.parse(original)
+        self.assertEqual(len(migrated.models), 8)
+        self.assertEqual(migrated.models[0].name, "Existing MAI 2.5")
+        self.assertEqual(migrated.models[0].version, "kept-version")
+        self.assertEqual(migrated.models[0].endpoint, original["models"][0]["endpoint"])
+        model = next(model for model in migrated.models if model.id == "mai-image-2-6")
+        self.assertEqual(model.name, "MAI Image 2.6")
+        self.assertEqual(model.deployment, "MAI-Image-2.6")
+        self.assertFalse(model.enabled)
+        self.assertFalse(model.endpoint)
+        self.assertFalse(model.public()["configured"])
+
+    def test_mai26_request_is_independent_with_web_search_and_auto_aspect_disabled(self):
+        prompt = "A simple bookstore poster."
+        old = build_request(self.mai, prompt, "1024x1024", "medium")
+        current = build_request(self.mai26, prompt, "1024x1024", "medium")
+        self.assertEqual(old["model"], "MAI-Image-2.5")
+        self.assertEqual(current, {
+            "model": "MAI-Image-2.6", "prompt": prompt, "width": 1024, "height": 1024,
+            "auto_aspect_ratio": False, "web_grounding": False,
+        })
+        self.assertNotIn("auto_aspect_ratio", old)
+        self.assertNotIn("web_grounding", old)
+        with self.assertRaises(ValidationError):
+            ModelConfig.parse({**self.mai26.public(), "supported_sizes": ["2048x2048"]})
 
     def test_adapters_preserve_prompt_and_only_send_supported_controls(self):
         prompt = "\u4e2d\u6587 poster"
@@ -176,7 +207,7 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(build_request(model, "p", "1024x1024", "medium")["model"], "gpt-image-2")
 
     def test_size_intersection_enforced_server_side(self):
-        for model in (self.mai, self.flux):
+        for model in (self.mai, self.mai26, self.flux):
             with self.assertRaises(ValidationError):
                 build_request(model, "p", "1536x1024", "medium")
 
@@ -346,7 +377,7 @@ class ApplicationTests(WorkbenchFixture):
         old.pop("translation")
         original = self.app.config.models[4:]
         saved = self.app.save_config(old)
-        self.assertEqual(len(saved["models"]), 7)
+        self.assertEqual(len(saved["models"]), len(self.app.config.models))
         for model in original:
             after = next(item for item in saved["models"] if item["id"] == model.id)
             self.assertEqual(after["endpoint"], model.endpoint)
@@ -443,7 +474,7 @@ class ApplicationTests(WorkbenchFixture):
         self.generate.assert_not_called()
         self.assertEqual(self.app.store.get(job["id"])["status"], "cancelled")
 
-    def test_all_seven_slots_can_participate_without_a_four_model_limit(self):
+    def test_all_model_slots_can_participate_without_a_fixed_model_limit(self):
         future = next(model for model in self.app.config.models if model.id == "gpt-image-2-5")
         future = replace(
             future, enabled=True, deployment="gpt-image-2.5",
@@ -454,7 +485,23 @@ class ApplicationTests(WorkbenchFixture):
             models=tuple(future if model.id == future.id else model for model in self.app.config.models),
         )
         job = self.run_job(parameters(model_ids=[model.id for model in self.app.config.models]))
-        self.assertEqual(job["progress"], {"done": 7, "total": 7})
+        self.assertEqual(job["progress"], {"done": len(self.app.config.models), "total": len(self.app.config.models)})
+
+    def test_mai_versions_have_separate_histories_statistics_and_archived_parameters(self):
+        old = self.run_job(parameters(model_ids=["mai-image-2-5"]))
+        job = self.run_job(parameters(model_ids=["mai-image-2-5", "mai-image-2-6"]))
+        self.assertEqual(job["progress"], {"done": 2, "total": 2})
+        self.assertEqual([row["model_id"] for row in job["summary"]], ["mai-image-2-5", "mai-image-2-6"])
+        self.assertEqual(filter_job(job, "mai")["model_ids"], job["model_ids"])
+        old_reloaded = self.app.store.get(old["id"])
+        self.assertEqual(old_reloaded["model_ids"], ["mai-image-2-5"])
+        self.assertEqual(old_reloaded["models"][0]["name"], "MAI Image 2.5")
+        folder = self.app.archive_dir / job["archive"]["relative_dir"]
+        manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+        current = next(row for row in manifest["samples"] if row["model"]["id"] == "mai-image-2-6")
+        self.assertFalse(current["request_parameters"]["auto_aspect_ratio"])
+        self.assertFalse(current["request_parameters"]["web_grounding"])
+        self.assertIn("mai-image-2-6", current["image"]["file"])
 
     def test_family_filter_is_a_view_and_keeps_statistics_in_the_same_experiment(self):
         job = self.run_job()

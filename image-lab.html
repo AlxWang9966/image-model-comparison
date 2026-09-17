@@ -80,6 +80,32 @@
     .icon { width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .muted, .hint { color: var(--cp-text-muted); }
     .hint { font-size: 12px; line-height: 1.65; }
+    .label-with-info { display: flex; align-items: center; gap: 7px; }
+    .info-button { display: inline-grid; place-items: center; width: 18px; height: 18px; min-width: 18px; padding: 0; border-radius: 50%; border: 1px solid var(--cp-border-strong); background: var(--cp-bg-elevated); color: var(--cp-text-muted); font-size: 11px; font-weight: 700; line-height: 1; vertical-align: middle; }
+    .info-button:hover, .info-button:focus-visible { color: var(--cp-accent); border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    #info-popover { position: fixed; inset: auto; margin: 0; width: 320px; max-width: calc(100vw - 24px); max-height: min(55vh, 400px); overflow: auto; padding: 12px 14px; border: 1px solid var(--cp-border-strong); border-radius: 10px; background: var(--cp-panel-strong); color: var(--cp-text); box-shadow: var(--cp-shadow); font-size: 12px; line-height: 1.75; overflow-wrap: anywhere; z-index: 100; }
+    .recent-section { margin-bottom: 24px; }
+    .recent-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .recent-head h2 { font-size: 14px; }
+    .recent-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .recent-card { position: relative; overflow: hidden; border: 1px solid var(--cp-border); border-radius: 12px; background: var(--cp-surface); min-width: 0; }
+    .recent-card.current { border-color: var(--cp-accent); }
+    .recent-open { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 12px 34px 12px 12px; border: 0; border-radius: 0; font-weight: 400; min-height: 88px; }
+    .recent-open img, .recent-empty-thumb { width: 60px; height: 60px; object-fit: contain; background: var(--cp-surface-soft); border-radius: 7px; flex-shrink: 0; }
+    .recent-empty-thumb { display: grid; place-items: center; color: var(--cp-text-muted); }
+    .recent-copy { min-width: 0; display: block; }
+    .recent-copy strong { font-size: 12px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recent-copy small { display: block; font-size: 10px; color: var(--cp-text-muted); margin-top: 4px; }
+    .recent-pin { position: absolute; right: 6px; top: 6px; padding: 4px 6px; border: 0; background: var(--cp-surface); font-size: 15px; }
+    .recent-pin[aria-pressed="true"] { color: var(--cp-accent); }
+    #report-dialog { width: min(650px, calc(100vw - 40px)); }
+    .report-option { display: flex; gap: 10px; align-items: flex-start; margin: 16px 0; }
+    .report-option input { flex-shrink: 0; margin-top: 5px; }
+    .report-option strong { display: block; font-size: 13px; }
+    .report-option small { display: block; font-size: 12px; color: var(--cp-text-muted); }
+    .report-list { display: grid; gap: 8px; margin-top: 16px; }
+    .report-list a { display: block; font-size: 12px; color: var(--cp-link); overflow-wrap: anywhere; }
+    .report-status { margin-top: 12px; font-size: 12px; color: var(--cp-text-muted); }
     .mono { font-family: Consolas, "Courier New", Courier, monospace; font-variant-numeric: tabular-nums; }
     .eyebrow { font-size: 11px; letter-spacing: .15em; font-weight: 700; color: var(--cp-accent); }
     .topbar { border-bottom: 1px solid var(--cp-border); background: var(--cp-bg-elevated); }
@@ -107,6 +133,26 @@
     .family-button[aria-pressed="true"] { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
     .family-count { font-size: 11px; opacity: .8; }
     .family-context { min-height: 22px; margin-bottom: 20px; }
+    .operation-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+    .operation-bar button { min-width: 112px; padding: 10px 16px; }
+    .operation-bar button[aria-pressed="true"] { background: var(--cp-accent); border-color: var(--cp-accent); color: var(--cp-accent-fg); }
+    .edit-flow { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--cp-text-muted); margin-left: auto; }
+    .edit-flow span { border: 1px solid var(--cp-border); background: var(--cp-bg-elevated); border-radius: 8px; padding: 6px 10px; }
+    .edit-flow .current { border-color: var(--cp-accent); color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .reference-upload { padding: 12px; border: 1px dashed var(--cp-border-strong); border-radius: 12px; margin-bottom: 16px; }
+    .reference-upload input[type="file"] { font-size: 11px; padding: 7px; }
+    .reference-draft { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+    .reference-draft img { width: 68px; height: 68px; object-fit: contain; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); border-radius: 8px; }
+    .reference-consent { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; font-size: 11px; line-height: 1.65; }
+    .reference-consent input { flex-shrink: 0; margin-top: 3px; }
+    .reference-result { display: flex; align-items: center; gap: 16px; padding: 14px 16px; margin-bottom: 16px; }
+    .reference-result button { flex-shrink: 0; padding: 0; overflow: hidden; }
+    .reference-result img { width: 96px; height: 96px; object-fit: contain; display: block; background: var(--cp-surface-soft); }
+    .reference-result p { font-size: 11px; color: var(--cp-text-muted); overflow-wrap: anywhere; }
+    .reference-result .reference-copy { min-width: 0; flex: 1; }
+    .editing-status { margin-bottom: 16px; font-size: 12px; padding: 12px 16px; }
+    #editing-status-row { margin-bottom: 16px; }
+    #editing-status-row .editing-status { flex: 1; margin-bottom: 0; }
     .advanced-options { padding: 12px; border: 1px solid var(--cp-border); border-radius: 10px; margin-bottom: 16px; }
     .advanced-options > summary { color: var(--cp-text); font-weight: 600; }
     .advanced-options[open] > summary { margin-bottom: 16px; }
@@ -226,8 +272,12 @@
     .rating-row label { font-weight: 600; font-size: 13px; }
     .rating-row small { display: block; font-weight: 400; font-size: 11px; color: var(--cp-text-muted); margin-top: 3px; }
     #zoom-dialog { width: min(1380px, calc(100vw - 40px)); }
-    .zoom-stage { height: min(68vh, 900px); background: var(--cp-surface-soft); overflow: auto; display: flex; }
+    .zoom-stage { height: min(68vh, 900px); background: var(--cp-surface-soft); overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr); }
+    .zoom-stage.comparing { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .zoom-pane { min-width: 0; overflow: auto; display: flex; align-items: flex-start; position: relative; }
+    .zoom-pane + .zoom-pane { border-left: 1px solid var(--cp-border); }
     .zoom-stage img { display: block; flex: 0 0 auto; object-fit: contain; max-width: none; margin: auto; }
+    .zoom-pane-label { position: sticky; top: 0; left: 0; align-self: flex-start; flex-shrink: 0; z-index: 1; background: var(--cp-panel-strong); padding: 4px 8px; font-size: 10px; }
     .zoom-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 24px; border-top: 1px solid var(--cp-border); flex-wrap: wrap; }
     .zoom-slider { display: flex; align-items: center; gap: 12px; font-size: 12px; }
     .zoom-slider input { width: 180px; }
@@ -237,7 +287,8 @@
     @media (max-width: 1200px) { .top-inner, main { padding-left: 20px; padding-right: 20px; } .layout { grid-template-columns: 260px minmax(0, 1fr); gap: 16px; } .setup { padding: 16px; } .result-grid { gap: 10px; } .card-heading, .card-info { padding: 12px; } .card-heading .provider-mark { display: none; } .card-name h3 { font-size: 12px; } .brand-sub { display: none; } .connection { margin-right: 4px; } }
     @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } .setup form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; } .prompt-block { grid-row: span 3; } .controls-block { grid-column: 2; } .launch-block, .setup-footer { grid-column: 1 / -1; } .setup-footer { margin-top: 12px; } .model-list { grid-template-columns: 1fr 1fr; } .workspace-head { margin-top: 12px; } .connection { display: none; } }
     @media (max-width: 640px) { main { padding: 24px 16px; } .top-inner { padding: 12px 16px; gap: 12px; } .brand { font-size: 17px; gap: 8px; } .top-actions { gap: 5px; } .top-actions button { padding: 6px 8px; font-size: 11px; } .top-actions .icon { display: none; } .theme-mobile { display: inline; } .hero { margin-bottom: 20px; } .hero-stamp { display: none; } h1 { font-size: 26px; } .hero p { font-size: 12px; } .setup form { display: block; } .result-grid { grid-template-columns: 1fr; } .workspace-head { align-items: flex-start; flex-direction: column; } .tools { width: 100%; } .tools button, .tools .button { flex: 1; font-size: 11px; padding: 7px; } .card-heading .provider-mark { display: grid; } .card-name h3 { font-size: 14px; } .card-heading, .card-info { padding: 16px; } .run-line { align-items: flex-start; } .speed-row { grid-template-columns: 115px minmax(24px, 1fr) 58px; font-size: 11px; gap: 8px; } .speed-row .run-count { display: none; } .analysis { padding: 16px; } .analysis-top { align-items: flex-start; flex-direction: column; } .future-note { flex-wrap: wrap; } .dialog-header, .dialog-body { padding: 16px; } .dialog-footer { padding: 12px 16px; } .rating-row { grid-template-columns: 1fr 120px; } .zoom-slider input { width: 120px; } .footer { flex-direction: column; gap: 4px; } .settings-model .two-col { grid-template-columns: 1fr; gap: 0; } }
-    @media (max-width: 640px) { .top-inner { flex-wrap: wrap; } .top-actions { margin-left: 0; width: 100%; justify-content: space-between; } #start-top-button { flex: 1; } .family-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } .family-button { padding: 9px 4px; gap: 4px; font-size: 11px; } .result-grid.single { grid-template-columns: 1fr; } #archive-note { flex-direction: column; align-items: stretch; } }
+    @media (max-width: 960px) { .recent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { .top-inner { flex-wrap: wrap; } .top-actions { margin-left: 0; width: 100%; justify-content: space-between; } #start-top-button { flex: 1; } .family-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } .family-button { padding: 9px 4px; gap: 4px; font-size: 11px; } .result-grid.single { grid-template-columns: 1fr; } #archive-note { flex-direction: column; align-items: stretch; } .edit-flow { margin-left: 0; gap: 6px; } .edit-flow span { padding: 5px 7px; } .recent-grid { grid-template-columns: 1fr; } .recent-open { min-height: 74px; } .recent-head { flex-wrap: wrap; } .recent-open img, .recent-empty-thumb { width: 48px; height: 48px; } }
     @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .progress > span { transition: none; } }
   </style>
 </head>
@@ -269,64 +320,105 @@
   <main>
     <section class="hero">
       <div><div class="eyebrow">IMAGE GENERATION WORKBENCH</div><h1>让速度与画质，同时可见。</h1><p>同一个任务，并排看结果。原始提示词、英文版本与真实耗时都可追溯。</p></div>
-      <div class="hero-stamp"><strong id="ready-count">— / 7</strong>已配置模型 · 所有结果保存在本地</div>
+      <div class="hero-stamp"><strong id="ready-count">—</strong>已配置模型 · 所有结果保存在本地</div>
     </section>
+    <div id="operation-bar" class="operation-bar" role="group" aria-label="比较任务类型">
+      <button data-operation="generate" aria-pressed="true" disabled>文生图</button>
+      <button data-operation="edit" aria-pressed="false" disabled>图片编辑</button>
+      <div id="edit-flow" class="edit-flow" aria-label="编辑流程进度" hidden><span id="step-reference">1 · 准备原图</span><span id="step-models">2 · 跑通模型</span><span id="step-review">3 · 分项评分</span></div>
+    </div>
     <div id="family-bar" class="family-bar" role="group" aria-label="按模型系列筛选">
       <button class="family-button" data-family="all" aria-pressed="true" disabled>全部<span class="family-count" data-family-count="all"></span></button>
       <button class="family-button" data-family="gpt" aria-pressed="false" disabled>GPT 系列<span class="family-count" data-family-count="gpt"></span></button>
       <button class="family-button" data-family="flux" aria-pressed="false" disabled>FLUX 系列<span class="family-count" data-family-count="flux"></span></button>
       <button class="family-button" data-family="mai" aria-pressed="false" disabled>MAI<span class="family-count" data-family-count="mai"></span></button>
     </div>
-    <p id="family-context" class="hint family-context">选择一个系列，快速对比同组模型。不同实验的图片不会混在一起。</p>
+    <div class="label-with-info family-context"><span id="family-context" class="hint">选择一个系列，快速对比同组模型。</span><button type="button" class="info-button" data-info="family-help" aria-label="模型筛选说明">i</button></div>
+    <p id="family-help" hidden>系列筛选同时作用于画布、统计、历史和导出，只影响下一轮的模型选择；不会混合不同实验，也不会取消已发送的请求。</p>
     <div id="error-banner" class="notice error notice-flex" role="alert" hidden><span id="error-text"></span><button id="retry-button" class="small">重新连接</button><button id="dismiss-error" class="small" aria-label="关闭错误提示">×</button></div>
     <div id="active-banner" class="notice notice-flex" hidden><span id="active-text">有一轮实验正在生成，切换历史不会中断它。</span><button id="return-active" class="small">查看正在生成的实验</button></div>
+    <section id="recent-section" class="recent-section" aria-label="已保存的实验">
+      <div class="recent-head"><div class="label-with-info"><h2>已保存的实验 <span id="saved-count" class="hint"></span></h2><button type="button" class="info-button" data-info="saved-help" aria-label="历史保存说明">i</button></div><div class="tools"><button class="small" id="pinned-only" aria-pressed="false">只看置顶</button><button class="small" id="recent-more">全部记录</button></div></div>
+      <p id="saved-help" hidden>所有运行结果自动保存在本机。点击星标置顶重要实验；再次打开页面时恢复上次浏览的结果和筛选。原图、评分和置顶状态保存在服务端文件，浏览器只记住视图位置，不保存密钥。</p>
+      <div id="recent-grid" class="recent-grid"><p class="hint">正在读取保存的结果…</p></div>
+    </section>
     <div class="layout">
       <aside class="panel setup">
-        <div class="section-title"><h2>新实验设置</h2><span class="step">01 / CONFIGURE</span></div>
+        <div class="section-title"><h2 id="experiment-title">新实验设置</h2><span class="step">01 / CONFIGURE</span></div>
         <form id="experiment-form">
           <div class="prompt-block">
+            <div id="reference-upload" class="reference-upload" hidden>
+              <div class="field-label"><label for="reference-file">参考原图</label><span class="label-with-info"><span class="hint">一张 · 8 MiB</span><button type="button" class="info-button" data-info="reference-help" aria-label="原图上传说明">i</button></span></div>
+              <input id="reference-file" type="file" accept="image/png,image/jpeg" aria-describedby="reference-help">
+              <p id="reference-help" hidden>PNG / JPEG，最多 8 MiB。上传仅保存本地，原图会去除元数据并规范为 PNG，不缩放或裁剪。建议先用 1024 × 1024 跑通所有模型。</p>
+              <p id="editing-dependency" class="hint" hidden></p>
+              <div id="reference-draft" class="reference-draft" hidden><img id="reference-thumb" alt="本轮准备使用的原图"><div><p id="reference-draft-meta" class="hint"></p><button type="button" id="clear-reference" class="small">移除</button></div></div>
+              <label class="reference-consent"><input type="checkbox" id="reference-consent"><span>我有权限将这张图及编辑指令发送给选中的模型服务。点击开始前不向模型发送图片。</span></label>
+            </div>
             <div class="field"><label for="preset">提示词示例 <span class="hint">可自由修改</span></label><select id="preset"><option value="poster">中文海报 · 文字与版式</option><option value="product">产品摄影 · 材质与光影</option><option value="portrait">人像摄影 · 皮肤与细节</option><option value="composition">复杂场景 · 关系与遵循</option></select></div>
-            <div class="field"><label for="topic">提示词主题 / Topic</label><input id="topic" maxlength="80" placeholder="用于图片目录与备注，例如：中文海报"><p class="hint" style="margin-top:6px">不填时使用提示词的前 32 个字符作为归档主题。</p></div>
-            <div class="field"><label for="prompt">原始任务提示词 <span id="prompt-count" class="hint">0 / 4000</span></label><textarea id="prompt" maxlength="4000" required spellcheck="false" aria-describedby="prompt-help"></textarea><p id="prompt-help" class="hint" style="margin-top:6px">按语言策略发送原文或英文版本；修改原文会清除旧英文稿，避免误用。</p></div>
+            <div class="field"><div class="field-label"><label for="topic">主题 / Topic</label><button type="button" class="info-button" data-info="topic-help" aria-label="主题与归档说明">i</button></div><input id="topic" maxlength="80" placeholder="例如：中文海报"><p id="topic-help" hidden>主题用于历史列表、报告和图片归档。不填时使用提示词前 32 个字符；完整提示词仍会保留。</p></div>
+            <div class="field"><div class="field-label"><label for="prompt" id="prompt-label">原始任务提示词</label><span class="label-with-info"><span id="prompt-count" class="hint">0 / 4000</span><button type="button" class="info-button" data-info="prompt-help" aria-label="提示词版本说明">i</button></span></div><textarea id="prompt" maxlength="4000" required spellcheck="false" aria-describedby="prompt-help"></textarea><p id="prompt-help" hidden>按语言策略发送原文或英文版本；修改原文会清除旧英文稿，避免误用。所有实际发送的指令都保存在结果与报告中。</p></div>
           </div>
           <div class="models-block"><div class="field-label">参与模型 <span id="model-selection-note" class="hint">未配置的模型不可生成</span></div><div id="model-list" class="model-list"><p class="hint">正在读取模型配置…</p></div></div>
           <details id="advanced-options" class="controls-block advanced-options">
             <summary>高级参数<span id="advanced-summary">1024 × 1024 · 1 轮 · 并行</span></summary>
-            <div class="two-col"><div class="field"><label for="size">统一尺寸</label><select id="size"><option value="1024x1024">1024 × 1024</option></select></div><div class="field"><label for="quality">生成质量 <span class="hint">仅 GPT</span></label><select id="quality"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="auto">Auto</option></select></div></div>
+            <div class="two-col"><div class="field"><div class="field-label"><label for="size">统一尺寸</label><button type="button" class="info-button" data-info="size-note" aria-label="尺寸限制说明">i</button></div><select id="size"><option value="1024x1024">1024 × 1024</option></select></div><div class="field"><label for="quality">生成质量 <span class="hint">仅 GPT</span></label><select id="quality"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="auto">Auto</option></select></div></div>
             <div class="two-col"><div class="field"><label for="runs">重复轮数</label><input id="runs" type="number" min="1" max="10" step="1" value="1" required></div><div class="field"><label for="mode">执行方式</label><select id="mode"><option value="parallel">并行对比</option><option value="sequential">串行基准</option></select></div></div>
-            <p id="size-note" class="hint" style="margin-bottom:16px">尺寸仅列出所选模型共同支持的选项。</p>
-            <div class="field"><label for="language-mode">提示词语言策略</label><select id="language-mode"><option value="model_defaults">按各模型设置</option><option value="original_all">全部使用原文（语言能力测试）</option><option value="english_flux">FLUX 系列使用英文版</option></select><p class="hint" style="margin-top:6px">FLUX.2 有官方多语言说明；中文指令理解与中文文字渲染是两回事。</p></div>
+            <p id="size-note" hidden>尺寸仅列出所选模型共同支持的选项。</p>
+            <div class="field"><div class="field-label"><label for="language-mode">提示词语言</label><button type="button" class="info-button" data-info="language-help" aria-label="语言策略说明">i</button></div><select id="language-mode"><option value="model_defaults">按各模型设置</option><option value="original_all">全部使用原文（语言能力测试）</option><option value="english_flux">FLUX 系列使用英文版</option></select><p id="language-help" hidden>FLUX.2 有官方多语言说明；中文指令理解与中文文字渲染是两回事。使用英文准备会记录原文和实际输入，有需要时另调用已配置文本服务，费用在开始按钮下提示。</p></div>
             <details id="english-section" class="field"><summary id="english-summary">英文提示词准备</summary><div style="margin-top:10px"><label class="field-label" for="english-prompt">英文版本（可选，最多 16000 字符）</label><textarea id="english-prompt" maxlength="16000" spellcheck="false" style="min-height:120px" placeholder="留空时，可通过已配置的 Azure 文本模型自动准备英文。图片中要求出现的中文引号文本应保持原样。"></textarea><p id="english-info" class="hint" style="margin-top:6px"></p></div></details>
           </details>
           <div class="launch-block"><button class="primary launch" id="start-button" type="submit" disabled><svg class="icon"><use href="#i-play"/></svg><span>开始对比</span></button><button class="launch" id="cancel-button" type="button" hidden>停止后续请求</button><div id="request-count" class="request-count">实际请求会产生模型调用费用</div><p id="cancel-note" class="hint" hidden style="margin-top:8px">已发出的请求仍会完成并可能计费；只停止尚未发出的请求。</p></div>
-          <div class="setup-footer hint">耗时含网络、图片传输与原图保存，不含英文准备、鉴权、排队和归档副本写入。不同模型的质量档位不等价。<br><span class="mono">Ctrl / ⌘ + Enter</span> 开始新一轮</div>
+          <div class="setup-footer hint label-with-info"><span><span class="mono">Ctrl / ⌘ + Enter</span> 开始新一轮</span><button type="button" class="info-button" data-info="method-note" aria-label="计时与评分口径">i</button></div>
         </form>
       </aside>
       <section class="workspace" aria-label="图像对比结果">
         <div class="workspace-head">
           <div class="workspace-title"><h2>对比画布</h2><span id="job-status" class="badge">尚未开始</span></div>
-          <div class="tools"><button class="small" id="new-button">新实验</button><button class="small" id="reuse-button" disabled>复用本轮设置</button><button class="small" id="blind-button" aria-pressed="false"><svg class="icon"><use href="#i-eye"/></svg>盲评模式</button><a id="json-export" class="button small" aria-disabled="true">JSON</a><a id="csv-export" class="button small" aria-disabled="true">CSV</a></div>
+          <div class="tools"><button class="small" id="new-button">新实验</button><button class="small" id="reuse-button" disabled>复用设置</button><button class="small" id="pin-button" aria-pressed="false" disabled>☆ 置顶</button><button class="small" id="blind-button" aria-pressed="false"><svg class="icon"><use href="#i-eye"/></svg>盲评</button><button id="report-button" class="primary small" disabled>导出报告</button><a id="json-export" class="button small" aria-disabled="true">JSON</a><a id="csv-export" class="button small" aria-disabled="true">CSV</a></div>
         </div>
         <div id="blind-note" class="notice" hidden><strong>盲评已开启</strong> · 图像顺序已打乱，模型身份与速度暂时隐藏。关闭盲评后揭晓，评分不会丢失。</div>
         <div class="panel run-line"><div id="run-meta" class="run-meta"><span>选择模型，输入提示词，然后开始一轮对比。</span></div><div class="round-picker"><label for="round" class="hint">查看轮次</label><select id="round" disabled><option value="1">第 1 轮</option></select></div></div>
         <div id="progress" class="progress" hidden><span id="progress-fill"></span></div>
         <div id="run-warning" class="notice" hidden></div>
+        <div id="reference-result" class="panel reference-result" hidden><button id="view-reference" aria-label="放大本实验参考原图"><img id="reference-result-image" alt="所有模型实际收到的同一张参考原图"></button><div class="reference-copy"><div class="label-with-info"><h3>本轮参考原图</h3><button type="button" class="info-button" data-info="source-help" aria-label="源图对比说明">i</button></div><p id="reference-result-meta"></p><p id="reference-result-hash" class="mono"></p></div></div>
+        <p id="source-help" hidden>所有模型收到同一份规范化 PNG。点击结果原图可并排查看原图与编辑结果；更换左侧原图不会改写旧实验。完整源图哈希与规范化说明保存在备注和报告中。</p>
+        <div id="editing-status-row" class="label-with-info" hidden><div id="editing-status" class="panel editing-status" role="status"></div><button type="button" class="info-button" data-info="editing-help" aria-label="编辑评分开放条件">i</button></div>
+        <p id="editing-help" hidden>所有参与模型和轮次成功后才开放编辑评分。切换到成功的模型子集不会绕过整轮条件。接口成功不等于视觉编辑正确；人工评价分成遵循、自然度、未改内容保持与文字，不生成整体认证分。</p>
         <div id="result-grid" class="result-grid"></div>
-        <div id="archive-note" class="notice notice-flex" style="margin-top:16px" hidden><div style="min-width:0;flex:1"><strong>整轮图片归档</strong><p id="archive-path" class="mono hint" style="overflow-wrap:anywhere;margin-top:4px"></p><p id="archive-info" class="hint" style="margin-top:4px"></p></div><div class="tools"><button id="archive-copy" class="small">复制路径</button><button id="archive-refresh" class="small">更新归档</button></div></div>
+        <div id="archive-note" class="notice notice-flex" style="margin-top:16px" hidden><div style="min-width:0;flex:1"><span class="label-with-info"><strong>本地图片归档</strong><button type="button" class="info-button" data-info="archive-help" aria-label="归档与隐私说明">i</button></span><p id="archive-path" class="mono hint" style="overflow-wrap:anywhere;margin-top:4px"></p><p id="archive-info" class="hint" style="margin-top:4px"></p></div><div class="tools"><button id="archive-copy" class="small">复制路径</button><button id="archive-refresh" class="small">更新归档</button></div></div>
+        <p id="archive-help" hidden>归档包含整轮模型、原图、真实指令和备注，不随画布筛选删除模型。更新归档不会重新生图。图片、提示词和备注可能包含客户资料，分享前需人工审核。</p>
         <section class="panel analysis" id="analysis">
-          <div class="analysis-top"><div><div class="eyebrow" style="margin-bottom:5px">02 / COMPARE</div><h2>速度与质量，一起衡量</h2></div><span id="timing-label" class="hint">端到端耗时 · 成功样本</span></div>
+          <div class="analysis-top"><div><div class="eyebrow" style="margin-bottom:5px">02 / COMPARE</div><span class="label-with-info"><h2>表现概览</h2><button type="button" class="info-button" data-info="method-note" aria-label="性能与人工评分说明">i</button></span></div><span id="timing-label" class="hint">端到端耗时 · 成功样本</span></div>
           <div id="speed-chart"><p class="empty-note">生成完成后，这里会显示真实耗时和人工评分。</p></div>
           <div class="table-wrap" id="summary-table"></div>
-          <p id="method-note" class="method-note">只统计当前实验的成功样本，不混合不同提示词或配置。人工评分未填写时保持为空，不生成虚构的质量分数。</p>
+          <p id="method-note" hidden>只统计当前实验的成功样本，不混合不同提示词或配置。人工评分未填写时保持为空，不生成虚构的质量分数。</p>
           <details id="all-rounds" style="margin-top:16px"><summary>展开每一轮的明细</summary><div class="table-wrap" id="sample-table"></div></details>
         </section>
         <details id="run-details" class="panel run-details" hidden><summary>查看本轮提示词、配置快照与实际请求</summary><p id="run-prompt"></p><pre id="run-requests"></pre></details>
-        <footer class="footer"><span>LOCAL FIRST · 原图、耗时与评分均保存在本地</span><span>盲评是界面辅助，不是多用户双盲实验协议。</span></footer>
+        <footer class="footer"><span>LOCAL FIRST · 结果保存在本地</span><span class="label-with-info">人评与实测记录<button type="button" class="info-button" data-info="review-help" aria-label="评价范围说明">i</button></span></footer>
+        <p id="review-help" hidden>自动量化评测已暂缓。当前只有人工分项评分和实测性能；报告解析基于记录，不自动判断图像质量。盲评是界面辅助，不是多用户双盲研究协议。</p>
       </section>
     </div>
   </main>
 
   <dialog id="history-dialog" aria-labelledby="history-title"><div class="dialog-header"><div><h2 id="history-title">实验历史</h2><p class="hint">包含原有 PowerShell 记录；不同计时口径分开保留。</p></div><button class="close" data-close="history-dialog" aria-label="关闭历史记录">×</button></div><div class="dialog-body"><div id="history-list"></div></div></dialog>
+  <dialog id="report-dialog" aria-labelledby="report-title">
+    <form id="report-form">
+      <div class="dialog-header"><div><h2 id="report-title">导出测评报告</h2><p id="report-scope" class="hint"></p></div><button type="button" class="close" data-close="report-dialog" aria-label="关闭报告导出">×</button></div>
+      <div class="dialog-body">
+        <p>生成一个可离线浏览的 HTML 文件，含性能图表、人工分项分数、逐图记录及基于数据的解析。</p>
+        <label class="report-option"><input id="report-images" type="checkbox" checked><span><strong>包含结果图片与编辑原图</strong><small>内嵌原图，文件可独立打开；超过 32 MiB 图片预算时可改为不含图片。</small></span></label>
+        <label class="report-option"><input id="report-notes" type="checkbox" checked><span><strong>包含人工观察备注</strong><small>评分仍会保留；取消此项只去掉文字评语。</small></span></label>
+        <label class="report-option"><input id="report-consent" type="checkbox" required><span>我知道报告可能包含图片、提示词及人工备注，向客户或其他人分享前会确认隐私与授权。</span></label>
+        <p class="hint">未评分项会标为“未评分 / N/A”；不会补分、调用评分模型或重新生图。HTML 内可打印 / 另存为 PDF。</p>
+        <p id="report-error" class="settings-error" role="alert"></p><p id="report-status" class="report-status" role="status"></p>
+        <a id="report-download" class="button" hidden>下载已生成的报告</a>
+        <div id="report-list" class="report-list"></div>
+      </div>
+      <div class="dialog-footer"><button type="button" data-close="report-dialog">关闭</button><button type="submit" id="export-report" class="primary">生成并下载 HTML</button></div>
+    </form>
+  </dialog>
 
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <form id="settings-form">
@@ -354,10 +446,11 @@
 
   <dialog id="zoom-dialog" aria-labelledby="zoom-title">
     <div class="dialog-header"><div><h2 id="zoom-title">查看原图</h2><p id="zoom-meta" class="hint"></p></div><button class="close" data-close="zoom-dialog" aria-label="关闭原图">×</button></div>
-    <div class="zoom-stage" id="zoom-stage"><img id="zoom-image" alt="生成原图"></div>
+    <div class="zoom-stage" id="zoom-stage"><div class="zoom-pane" id="zoom-source-pane" hidden><span class="zoom-pane-label">参考原图</span><img id="zoom-source-image" alt="同一份参考原图"></div><div class="zoom-pane" id="zoom-result-pane"><img id="zoom-image" alt="生成原图"></div></div>
     <div class="zoom-tools"><div class="zoom-slider"><label for="zoom-range">缩放</label><input id="zoom-range" type="range" min="10" max="200" step="1" value="100"><span id="zoom-value" class="mono">100%</span><button id="zoom-fit" class="small">适应窗口</button><button id="zoom-actual" class="small">原始大小</button></div><a id="zoom-download" class="button small"><svg class="icon"><use href="#i-download"/></svg>下载原图</a></div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="info-popover" role="tooltip" popover="manual"></div>
   <script>
     "use strict";
     const $ = id => document.getElementById(id);
@@ -370,6 +463,7 @@
     const dateText = value => value ? new Date(value).toLocaleString("zh-CN", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}) : "—";
     const bytesText = bytes => bytes > 0 ? (bytes / 1048576).toFixed(2) + " MB" : "—";
     const imageURL = sample => sample?.image_url && /^\/images\/(?:[0-9a-f]{32}|legacy-[0-9a-f]{16})\/[0-9a-f]{16}\.(png|jpg)$/.test(sample.image_url) ? sample.image_url : null;
+    const referenceURL = reference => reference?.image_url && /^(?:\/references\/[0-9a-f]{32}|\/images\/[0-9a-f]{32})\/reference\.png$/.test(reference.image_url) ? reference.image_url : null;
     const criteria = [
       ["adherence","提示词遵循","主体、数量、关系与指定内容是否准确"],
       ["visual","视觉细节","材质、结构、纹理与真实感"],
@@ -389,12 +483,56 @@
       portrait:'A natural-light portrait photograph of a young adult woman wearing round eyeglasses, reading beside a window. Her fingers naturally turn a book page. Preserve real skin texture, with soft side lighting and softly blurred plants and bookshelves in the background. Half-body composition, realistic photographic quality, no skin smoothing, and no added text.',
       composition:'A realistic still-life photograph on a dark wooden dining table. Exactly three red apples are on the left and exactly two green pears are on the right. A transparent drinking glass is in the middle. Behind the glass is a white card with the exact text "GOOD MORNING". A silver spoon lies horizontally in front of the glass. All objects are fully visible; follow the object counts and spatial relationships exactly.'
     };
+    const editPresets = {
+      color:{label:"局部修改 · 杯子改色",topic:"编辑-杯子改色",prompt:"只将图中杯子的颜色改为绿色。保持杯子的形状、位置、光照和阴影不变；不要修改其他物体、背景、构图或原有文字。",english:"Change only the cup's color to green. Keep its shape, position, lighting, and shadows unchanged. Do not change other objects, the background, the composition, or any existing text."},
+      background:{label:"背景替换 · 浅灰背景",topic:"编辑-背景替换",prompt:"将背景替换为干净的浅灰色摄影棚背景，保留主体的身份、外形、颜色、材质、位置和原有文字，让主体边缘及阴影自然。",english:"Replace the background with a clean light-gray studio backdrop. Preserve the main subject's identity, shape, colors, materials, position, and existing text. Make the subject's edges and shadows look natural."},
+      text:{label:"文字修改 · 指定标题",topic:"编辑-文字替换",prompt:"将图中主标题替换为“春日读书会”。保持其他文字、画面内容、构图、色彩和版式不变，确保新标题清晰可读。",english:'Replace the main headline with the exact Chinese text "春日读书会". Keep other text, image content, composition, colors, and layout unchanged. Make the new headline clearly readable.'},
+      style:{label:"整体编辑 · 水彩风格",topic:"编辑-水彩风格",prompt:"将这张图片转换为柔和的水彩画风格，保留原有主体、物体数量、空间关系、构图和可见文字，不添加新物体。",english:"Convert this image to a soft watercolor style while preserving its subjects, object counts, spatial relationships, composition, and visible text. Do not add new objects."}
+    };
+    const generatePresetLabels = {poster:"中文海报 · 文字与版式",product:"产品摄影 · 材质与光影",portrait:"人像摄影 · 皮肤与细节",composition:"复杂场景 · 关系与遵循"};
+    const operationNames = {generate:"文生图",edit:"图片编辑"};
     const familyNames = {all:"全部模型",gpt:"GPT 系列",flux:"FLUX 系列",mai:"MAI"};
+    const VIEW_KEY = "image-lab:last-view:v1";
+    let viewStorageWarning = "", viewStorageUnavailable = false;
+    function readSavedView() {
+      try {
+        const raw = localStorage.getItem(VIEW_KEY);
+        if (!raw) return null;
+        if (raw.length > 2048) throw new Error("视图记录过大");
+        const view = JSON.parse(raw);
+        if (!view || !Object.hasOwn(familyNames, view.family) || !Object.hasOwn(operationNames, view.operation) ||
+            (view.job_id !== null && (typeof view.job_id !== "string" || !/^(?:[0-9a-f]{32}|legacy-[0-9a-f]{16})$/.test(view.job_id))) ||
+            !Number.isInteger(view.round) || view.round < 1 || view.round > 1000) throw new Error("视图记录格式无效");
+        return view;
+      } catch (err) {
+        viewStorageWarning = "上次浏览位置无法恢复，将显示最近结果；实验文件仍保存在本地。";
+        return null;
+      }
+    }
+    const savedView = readSavedView();
     const requestedFamily = new URLSearchParams(location.search).get("family");
     const validInitialFamily = Object.hasOwn(familyNames, requestedFamily || "");
-    const S = {config:null,csrf:"",history:[],selected:new Set(),job:null,activeId:null,round:1,blind:false,order:[],signature:"",connected:false,starting:false,pollTimer:null,pollBusy:false,viewToken:0,ratingTarget:null,zoomSample:null,healthBusy:false,family:validInitialFamily ? requestedFamily : "all",familyChosen:validInitialFamily};
+    const requestedOperation = new URLSearchParams(location.search).get("operation");
+    const validInitialOperation = Object.hasOwn(operationNames, requestedOperation || "");
+    const requestedJob = new URLSearchParams(location.search).get("job");
+    const S = {config:null,csrf:"",history:[],selected:new Set(),job:null,activeId:null,round:1,blind:false,order:[],signature:"",connected:false,starting:false,pollTimer:null,pollBusy:false,viewToken:0,ratingTarget:null,zoomSample:null,healthBusy:false,family:validInitialFamily ? requestedFamily : savedView?.family || "all",familyChosen:validInitialFamily || !!savedView,operation:validInitialOperation ? requestedOperation : savedView?.operation || "generate",operationChosen:validInitialOperation || !!savedView,editing:null,reference:null,uploading:false,uploadToken:0,zoomReference:null,drafts:{},pinnedOnly:false,pinBusy:new Set(),recentSignature:"",reportTarget:null,reportBusy:false};
     let toastTimer;
     function toast(message) { $("toast").textContent = message; $("toast").hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 4500); }
+    function rememberView() {
+      const view = {job_id:S.job?.id || null,family:S.family,operation:S.operation,round:S.round};
+      const url = new URL(location.href);
+      url.searchParams.set("family", S.family); url.searchParams.set("operation", S.operation);
+      if (view.job_id) url.searchParams.set("job", view.job_id); else url.searchParams.delete("job");
+      history.replaceState(null, "", url);
+      if (viewStorageUnavailable) return;
+      try {
+        const value = JSON.stringify(view);
+        if (localStorage.getItem(VIEW_KEY) !== value) localStorage.setItem(VIEW_KEY, value);
+      } catch (err) {
+        viewStorageUnavailable = true;
+        toast("浏览器不允许保存浏览位置；图片、评分和置顶记录仍保存在本地服务。");
+      }
+    }
     function error(message, retry=false) { $("error-text").textContent = message; $("error-banner").hidden = false; $("retry-button").hidden = !retry; }
     function connected(value) { S.connected = value; $("connection").classList.toggle("connected", value); $("connection-text").textContent = value ? "本地服务已连接" : "连接中断"; updateActions(); }
     async function api(path, options={}) {
@@ -405,9 +543,96 @@
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
       return data;
     }
+    function currentCriteria() {
+      return S.job?.operation === "edit" ? [
+        ["adherence","编辑指令遵循","要求修改的对象、属性和范围是否准确"],
+        ["visual","编辑结果自然度","边缘、结构、光影、材质是否自然"],
+        ["preservation","未改内容保持","不应变化的内容、身份和文字是否保留；全局改风格可留空"],
+        ["text","文字准确性","有明确目标文字时评价；不适用可留空"]
+      ] : criteria;
+    }
     function score(rating) {
-      const values = criteria.map(([key]) => rating?.[key]).filter(value => Number.isInteger(value) && value >= 1 && value <= 5);
+      const values = currentCriteria().map(([key]) => rating?.[key]).filter(value => Number.isInteger(value) && value >= 1 && value <= 5);
       return values.length ? values.reduce((a,b) => a+b, 0) / values.length : null;
+    }
+    function editingReviewReady() { return S.job?.operation !== "edit" || S.job.review_ready === true; }
+    function choosePreset(key) {
+      const edit = S.operation === "edit", preset = edit ? editPresets[key] : null;
+      $("prompt").value = edit ? preset.prompt : presets[key];
+      $("topic").value = edit ? preset.topic : topics[key];
+      $("english-prompt").value = edit ? preset.english : englishPresets[key];
+      $("prompt-count").textContent = $("prompt").value.length + " / 4000";
+    }
+    function setOperation(operation, resetView=true) {
+      if (!Object.hasOwn(operationNames, operation)) return;
+      if (resetView && operation === S.operation) return;
+      if (S.operation !== operation) {
+        S.drafts[S.operation] = {prompt:$("prompt").value,topic:$("topic").value,english:$("english-prompt").value,preset:$("preset").value};
+        S.operation = operation;
+      }
+      const options = operation === "edit" ? Object.entries(editPresets).map(([id,preset]) => [id,preset.label]) : Object.entries(generatePresetLabels);
+      $("preset").innerHTML = options.map(([id,label]) => `<option value="${id}">${label}</option>`).join("");
+      const draft = S.drafts[operation];
+      if (draft) {
+        $("prompt").value = draft.prompt; $("topic").value = draft.topic; $("english-prompt").value = draft.english; $("preset").value = draft.preset;
+        $("prompt-count").textContent = draft.prompt.length + " / 4000";
+      } else choosePreset(options[0][0]);
+      if (resetView) {
+        S.operationChosen = true; ++S.viewToken; S.job = null; S.round = 1; S.order = [];
+        if (operation === "edit") $("reference-consent").checked = false;
+        const url = new URL(location.href); url.searchParams.set("operation", operation); history.replaceState(null,"",url);
+      }
+      S.signature = ""; render(); renderHistory();
+      if (resetView) rememberView();
+    }
+    function renderEditing() {
+      const editing = S.operation === "edit", job = S.job?.operation === "edit" ? S.job : null;
+      $("operation-bar").querySelectorAll("[data-operation]").forEach(button => {
+        button.disabled = !S.config;
+        button.setAttribute("aria-pressed", String(button.dataset.operation === S.operation));
+      });
+      $("experiment-title").textContent = editing ? "新图片编辑" : "新实验设置";
+      $("prompt-label").textContent = editing ? "编辑指令（要改什么、保留什么）" : "原始任务提示词";
+      $("reference-upload").hidden = !editing; $("edit-flow").hidden = !editing;
+      $("reference-file").disabled = S.uploading || S.editing?.available === false;
+      $("editing-dependency").hidden = !editing || S.editing?.available !== false;
+      $("editing-dependency").textContent = S.editing?.reason || "";
+      $("reference-draft").hidden = !S.reference;
+      if (S.reference) {
+        if ($("reference-thumb").getAttribute("src") !== referenceURL(S.reference)) $("reference-thumb").src = referenceURL(S.reference);
+        $("reference-draft-meta").textContent = `${S.reference.width} × ${S.reference.height} · ${bytesText(S.reference.bytes)} · 已去除元数据`;
+      } else $("reference-thumb").removeAttribute("src");
+      $("step-reference").classList.toggle("current", !S.reference && !job);
+      $("step-models").classList.toggle("current", !!job && !job.review_ready || !job && !!S.reference);
+      $("step-review").classList.toggle("current", !!job?.review_ready);
+      $("reference-result").hidden = !job?.reference_image;
+      if (job?.reference_image) {
+        const reference = job.reference_image;
+        if ($("reference-result-image").getAttribute("src") !== referenceURL(reference)) $("reference-result-image").src = referenceURL(reference);
+        $("reference-result-meta").textContent = `${reference.width} × ${reference.height} · ${bytesText(reference.bytes)} · 同一份 PNG`;
+        $("reference-result-hash").textContent = "SHA-256 " + reference.sha256.slice(0,16) + "…";
+      }
+      $("editing-status-row").hidden = !job;
+      $("editing-status").hidden = !job;
+      if (job) $("editing-status").textContent = job.review_ready ?
+        "所有参与模型与轮次已成功，可分项评价。" :
+        active.has(job.status) ? "待整轮所有模型成功后开放评分。" :
+        "本轮有未成功的编辑，评分暂未开放。";
+    }
+    async function uploadReference(file) {
+      if (!file) return;
+      if (file.size > 8*1024*1024) { error("原图不能超过 8 MiB。"); return; }
+      const token = ++S.uploadToken; S.uploading = true; S.reference = null; $("reference-consent").checked = false; updateActions();
+      try {
+        const response = await fetch("/api/references", {method:"POST",headers:{"Content-Type":file.type || "image/png","X-Image-Lab-Token":S.csrf},body:file});
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        if (token === S.uploadToken) {
+          S.reference = result;
+          toast("原图已在本地校验并去除元数据，尚未发送给模型。");
+        }
+      } catch (err) { error("无法准备编辑原图：" + err.message); }
+      finally { if (token === S.uploadToken) S.uploading = false; updateActions(); }
     }
     function shuffle(ids) {
       const result = [...ids];
@@ -418,6 +643,7 @@
     function inFamily(model) { return S.family === "all" || model.provider === S.family; }
     function familyModels() { return S.config?.models.filter(inFamily) || []; }
     function historyMatches(job) {
+      if ((job.operation || "generate") !== S.operation) return false;
       if (S.family === "all") return true;
       const providers = job.providers || job.model_ids.map(id => S.config?.models.find(model => model.id === id)?.provider);
       return providers.includes(S.family);
@@ -430,6 +656,7 @@
       const url = new URL(location.href); url.searchParams.set("family", family);
       history.replaceState(null, "", url);
       syncModelInputs(); render(); renderHistory();
+      rememberView();
     }
     function renderFamily() {
       $("family-bar").querySelectorAll("[data-family]").forEach(button => {
@@ -442,9 +669,8 @@
       const count = modelsForView().length;
       $("model-selection-note").textContent = `${S.selected.size} 个已选 / ${familyModels().length} 个可选槽位`;
       $("family-context").textContent = S.job ?
-        `当前记录显示 ${count} / ${S.job.models.length} 个模型；下一轮已选 ${S.selected.size} 个${S.family === "all" ? "模型" : familyNames[S.family] + "模型"}。` +
-        (S.activeId ? " 筛选不会取消已经发出的其他模型请求。" : " 不合并不同实验的图片或统计。") :
-        `${familyNames[S.family]}：已选 ${S.selected.size} 个模型。只会调用当前勾选的模型，其他组不会在后台生图。`;
+        `当前显示 ${count} / ${S.job.models.length} 个模型 · 下一轮已选 ${S.selected.size} 个` :
+        `${operationNames[S.operation]} · ${familyNames[S.family]} · 已选 ${S.selected.size} 个模型`;
     }
     function englishTargets() {
       const mode = $("language-mode").value;
@@ -479,7 +705,7 @@
         <span class="provider-mark">${model.provider === "mai" ? "M" : model.provider === "flux" ? "F" : model.id.startsWith("gpt-image-2-5") ? "G+" : "G"}</span>
         <span class="model-text"><strong>${esc(model.name)}</strong><small>${model.configured ? "已配置 · " + esc(model.version || "版本未记录") + (model.prompt_policy === "english" ? " · 英文优先" : "") : "待配置 · 暂不参与生成"}</small></span>
       </label>`).join("");
-      $("ready-count").textContent = `${availableModels().length} / ${S.config?.models.length || 7}`;
+      $("ready-count").textContent = S.config ? `${availableModels().length} / ${S.config.models.length}` : "—";
       updateSize();
     }
     function updateSize() {
@@ -489,24 +715,30 @@
       $("size").innerHTML = sizes.map(size => `<option value="${esc(size)}">${esc(size.replace("x"," × "))}</option>`).join("");
       $("size").value = sizes.includes(previous) ? previous : (sizes[0] || "");
       $("quality").disabled = !models.some(model => model.provider === "gpt");
-      $("size-note").textContent = models.some(model => ["mai-image-2-5","flux-1-kontext-pro"].includes(model.id)) ? "MAI 2.5 / Kontext 使用共同的 1024 × 1024 目标；FLUX.2 单独支持最高 2048 × 2048。" : "仅列出共同支持的尺寸。GPT quality 与 FLUX.2 Flex 的 steps / guidance 不等价，实际参数均有记录。";
+      $("size-note").textContent = models.some(model => model.provider === "mai" || model.id === "flux-1-kontext-pro") ? "MAI 2.5 / 2.6 与 Kontext 使用共同的 1024 × 1024 目标。MAI 2.6 的自动画幅和联网搜索均关闭。" : "仅列出共同支持的尺寸。GPT quality 与 FLUX.2 Flex 的 steps / guidance 不等价，实际参数均有记录。";
       updateActions();
     }
     function updateActions() {
       const runs = Number($("runs").value);
-      $("start-button").disabled = !S.connected || S.starting || !!S.activeId || !S.selected.size || !$("size").value;
+      const referenceMissing = S.operation === "edit" && (!S.reference || !$("reference-consent").checked || S.editing?.available !== true || S.uploading);
+      $("start-button").disabled = !S.connected || S.starting || !!S.activeId || !S.selected.size || !$("size").value || referenceMissing;
       $("start-top-button").disabled = $("start-button").disabled;
-      $("start-top-button").textContent = S.activeId ? "实验进行中" : S.starting ? "正在创建…" : "开始对比";
-      $("start-button").querySelector("span").textContent = S.starting ? "正在创建实验…" : S.activeId ? "实验进行中…" : "开始对比";
+      $("start-top-button").textContent = S.activeId ? "实验进行中" : S.starting ? "正在创建…" : S.operation === "edit" ? "开始编辑对比" : "开始对比";
+      $("start-button").querySelector("span").textContent = S.uploading ? "正在准备原图…" : S.starting ? "正在创建实验…" : S.activeId ? "实验进行中…" : S.operation === "edit" ? "开始编辑对比" : "开始对比";
       $("cancel-button").hidden = !S.activeId;
       $("cancel-button").disabled = !!(S.job?.id === S.activeId && S.job.cancel_requested);
       $("cancel-note").hidden = !S.activeId;
-      $("request-count").textContent = `${S.selected.size} 个模型 × ${Number.isInteger(runs) && runs>0 ? runs : "—"} 轮 = ${Number.isInteger(runs) && runs>0 ? S.selected.size*runs : "—"} 次生图请求${mayTranslate() ? "，另可能增加 1 次文本准备" : ""} · 按服务计费`;
+      $("request-count").textContent = `${S.selected.size} 个模型 × ${Number.isInteger(runs) && runs>0 ? runs : "—"} 轮 = ${Number.isInteger(runs) && runs>0 ? S.selected.size*runs : "—"} 次${S.operation === "edit" ? "图片编辑" : "生图"}请求${mayTranslate() ? "，另可能增加 1 次文本准备" : ""} · 按服务计费`;
       languageInfo();
       renderFamily();
+      renderEditing();
       $("advanced-summary").textContent = `${$("size").value.replace("x"," × ")} · ${Number.isInteger(runs) && runs > 0 ? runs : "—"} 轮 · ${$("mode").value === "parallel" ? "并行" : "串行"}${$("quality").disabled ? "" : " · GPT " + $("quality").value}`;
       $("active-banner").hidden = !S.activeId || S.job?.id === S.activeId;
       $("reuse-button").disabled = !S.job || !modelsForView().length;
+      $("pin-button").disabled = !S.job || S.pinBusy.has(S.job.id);
+      $("pin-button").setAttribute("aria-pressed", String(!!S.job?.pinned));
+      $("pin-button").textContent = S.job?.pinned ? "★ 已置顶" : "☆ 置顶";
+      $("report-button").disabled = !S.job || active.has(S.job.status) || S.blind || !modelsForView().length || S.reportBusy;
       $("history-button").disabled = !S.config;
       $("settings-button").disabled = !S.config;
       $("save-settings").disabled = !!S.activeId;
@@ -519,24 +751,27 @@
         link.title = S.blind ? "请先关闭盲评再导出，导出内容包含模型身份。" : `导出当前记录的${familyNames[S.family]}。内部诊断数据可能包含部署名和 endpoint；对外分享仍需审核。`;
       }
     }
-    function adoptJob(job) {
+    function adoptJob(job, initialRound=1) {
       if (S.job?.id === job.id && Date.parse(job.updated_at) < Date.parse(S.job.updated_at)) return;
-      if (S.job?.id !== job.id) { S.round = 1; S.order = []; }
+      if (S.job?.id !== job.id) { S.round = initialRound; S.order = []; }
       S.job = job;
       render();
+      rememberView();
     }
-    async function loadJob(id, inferFamily=false) {
+    async function loadJob(id, inferFamily=false, initialRound=1) {
       const token = ++S.viewToken;
       try {
         const job = await api(`/api/jobs/${encodeURIComponent(id)}`);
         if (token === S.viewToken) {
+          const operation = job.operation || "generate";
+          if (S.operation !== operation) setOperation(operation, false);
           if (inferFamily && !S.familyChosen) {
             const providers = [...new Set(job.models.map(model => model.provider))];
             S.family = providers.length === 1 && Object.hasOwn(familyNames, providers[0]) ? providers[0] : "all";
             S.selected = new Set(availableModels().filter(inFamily).map(model => model.id));
             syncModelInputs();
           }
-          adoptJob(job);
+          adoptJob(job, initialRound);
         }
       }
       catch (err) { error("无法打开实验：" + err.message); }
@@ -544,13 +779,19 @@
     async function bootstrap(initial=false) {
       try {
         const boot = await api("/api/bootstrap");
-        S.csrf = boot.csrf_token; S.config = boot.config; S.history = boot.history; S.activeId = boot.active_job_id;
+        S.csrf = boot.csrf_token; S.config = boot.config; S.history = boot.history; S.activeId = boot.active_job_id; S.editing = boot.editing;
         S.selected = new Set(initial ? availableModels().filter(inFamily).map(model => model.id) : [...S.selected].filter(id => availableModels().some(model => model.id === id && inFamily(model))));
         connected(true); syncModelInputs(); renderHistory();
         $("error-banner").hidden = true;
         if (boot.warnings?.length) error(boot.warnings.join(" · "));
-        if (initial && (S.activeId || S.history[0]?.id)) await loadJob(S.activeId || S.history[0].id, true);
+        const first = S.operationChosen || S.familyChosen ? S.history.find(historyMatches) : S.history[0];
+        const explicit = S.history.find(item => item.id === requestedJob);
+        const restoringSameScope = savedView && (!validInitialFamily || requestedFamily === savedView.family) && (!validInitialOperation || requestedOperation === savedView.operation);
+        const restored = restoringSameScope && savedView.job_id ? S.history.find(item => item.id === savedView.job_id) : null;
+        const target = S.activeId || explicit?.id || restored?.id || first?.id;
+        if (initial && target) await loadJob(target, true, restored?.id === target ? savedView.round : 1);
         else render();
+        if (initial && viewStorageWarning) { toast(viewStorageWarning); viewStorageWarning = ""; }
         if (S.activeId) schedulePoll();
       } catch (err) { connected(false); error("无法连接本地服务。请运行 .\\start-image-lab.ps1，然后重新连接。 " + err.message, true); }
     }
@@ -577,7 +818,7 @@
       const rounds = job?.runs || 1; S.round = Math.min(S.round, rounds);
       $("round").innerHTML = Array.from({length:rounds},(_,i) => `<option value="${i+1}">第 ${i+1} 轮</option>`).join("");
       $("round").value = String(S.round); $("round").disabled = rounds <= 1;
-      $("run-meta").innerHTML = job ? `<span>${esc(dateText(job.created_at))}</span><span>${esc(job.topic || "主题未记录")}</span><span>${esc(job.size === "unknown" ? "尺寸未记录" : job.size === "mixed" ? "原记录尺寸不一致" : job.size.replace("x"," × "))}</span><span>${job.mode === "parallel" ? "并行" : "串行"} · ${job.model_ids.length} 模型 · ${job.runs} 轮</span><span>${job.source === "legacy" ? "原脚本记录 · API 响应耗时" : `整轮完成 ${job.progress.done} / ${job.progress.total} 请求`}</span>` : "<span>选择模型，输入提示词，然后开始一轮对比。</span>";
+      $("run-meta").innerHTML = job ? `<span class="badge">${operationNames[job.operation || "generate"]}</span><span>${esc(dateText(job.created_at))}</span><span>${esc(job.topic || "主题未记录")}</span><span>${esc(job.size === "unknown" ? "尺寸未记录" : job.size === "mixed" ? "原记录尺寸不一致" : job.size.replace("x"," × "))}</span><span>${job.mode === "parallel" ? "并行" : "串行"} · ${job.model_ids.length} 模型 · ${job.runs} 轮</span><span>${job.source === "legacy" ? "原脚本记录 · API 响应耗时" : `整轮完成 ${job.progress.done} / ${job.progress.total} 请求`}</span>` : `<span>${S.operation === "edit" ? "上传一张原图，填写修改要求，确认授权后开始。" : "选择模型，输入提示词，然后开始一轮对比。"}</span>`;
       if (job?.translation?.status === "running") $("run-meta").insertAdjacentHTML("beforeend", '<span class="badge accent">正在调用文本模型准备英文，不计入生图耗时</span>');
       else if (job?.translation?.request_attempted) $("run-meta").insertAdjacentHTML("beforeend", `<span>英文准备 ${seconds(job.translation.elapsed_ms)} s · ${job.translation.status === "completed" ? "额外文本调用" : "失败"}</span>`);
       $("progress").hidden = !job || !active.has(job.status);
@@ -589,6 +830,7 @@
       if (signature !== S.signature) { renderCards(); S.signature = JSON.stringify([job?.id,job?.updated_at,S.round,S.blind,S.order,S.family,[...S.selected]]); }
       renderSummary();
       renderArchive();
+      renderRecent();
       $("run-details").hidden = !job || S.blind;
       if (job && !S.blind) {
         $("run-prompt").textContent = job.prompt || "原始提示词未记录，不能根据图片反推为某个提示词。";
@@ -597,6 +839,7 @@
           language_mode:job.language_mode || "original_all", translation:job.translation || null,
           requested_size:job.size, gpt_quality:job.gpt_quality, mode:job.mode, timing_scope:job.timing_scope,
           view_filter:S.family,
+          operation:job.operation || "generate", reference_image:job.reference_image || null, review_ready:job.review_ready,
           models:modelsForView().map(model => ({name:model.name,deployment:model.deployment,version:model.version || "unknown",endpoint:model.endpoint,prompt_policy:model.prompt_policy || "original"})),
           requests:samplesForView().filter(sample => sample.round === S.round).map(sample => ({model_id:sample.model_id,prompt_variant:sample.prompt_variant || "original",effective_prompt:sample.effective_prompt ?? sample.request?.prompt ?? null,body:sample.request,revised_prompt:sample.revised_prompt || null}))
         }, null, 2);
@@ -616,8 +859,8 @@
       if (!job) return;
       $("archive-path").textContent = archivePath() || (active.has(job.status) ? "本轮结束后自动整理到 image-lab-archive 文件夹。" : "该记录尚未完成归档。");
       $("archive-info").textContent = archive?.status === "failed" ? archive.error :
-        archive?.status === "ready" ? `整轮共 ${archive.image_count} 张原图 / ${archive.sample_count} 条样本记录，归档不随画布筛选删除模型。${archive.missing_images ? " 有 " + archive.missing_images + " 张历史图片已缺失，已明确标注。" : ""} 分享前请审核图像、提示词和备注。` :
-        "归档不会重新生图。失败或被旧脚本覆盖的图片只保留备注，不伪造替代图片。";
+        archive?.status === "ready" ? `${archive.image_count} 张输出 · ${archive.sample_count} 条记录${job.operation === "edit" ? " · 含原图" : ""}${archive.missing_images ? " · " + archive.missing_images + " 张历史图缺失" : ""}` :
+        "本轮结束后自动归档。";
     }
     function renderCards() {
       const models = orderedModels(), samples = samplesForView().filter(sample => sample.round === S.round);
@@ -645,8 +888,8 @@
         return `<article class="panel result-card ${fastest ? "fastest" : ""}">
           <div class="card-heading"><span class="provider-mark">${S.blind ? String.fromCharCode(65+index) : model.provider === "mai" ? "M" : model.provider === "flux" ? "F" : "G"}</span><div class="card-name"><h3>${esc(label)}</h3><p>${S.blind ? `匿名样本 · 第 ${S.round} 轮` : esc(model.deployment || "待配置") + (sample?.prompt_variant?.includes("english") ? " · 英文版本" : " · 原文")}</p></div>${fastest ? '<span class="badge accent">本轮最快</span>' : sample ? `<span class="badge ${sample.status === "failed" ? "danger" : ""}">${esc(statusNames[sample.status] || sample.status)}</span>` : ""}</div>
           <div class="image-area">${image}</div>
-          <div class="card-info"><div class="card-metrics"><div><span class="metric-label">${sample?.status === "failed" ? "失败前耗时" : S.job?.source === "legacy" ? "API 响应耗时" : "端到端耗时"}</span>${time}</div><div><span class="metric-label">人工质量评分</span><span class="metric-value">${rating === null ? "—" : rating.toFixed(1)}<small>/ 5</small></span></div></div>
-          <div class="card-bottom"><span class="hint">${sample?.width ? `${sample.width} × ${sample.height}<br>${bytesText(sample.output_bytes)}` : "原图 / 不裁剪"}</span><button class="small" data-action="rate" data-sample="${sample?.id || ""}" ${url && sample.status === "success" ? "" : "disabled"}>${rating === null ? "评价画质" : "编辑评分"}</button></div>
+          <div class="card-info"><div class="card-metrics"><div><span class="metric-label">${sample?.status === "failed" ? "失败前耗时" : S.job?.source === "legacy" ? "API 响应耗时" : "端到端耗时"}</span>${time}</div><div><span class="metric-label">${S.job?.operation === "edit" ? "人工分项 · 无总分" : "人工质量评分"}</span><span class="metric-value">${S.job?.operation === "edit" ? rating === null ? "未评" : "已记录" : (rating === null ? "—" : rating.toFixed(1)) + "<small>/ 5</small>"}</span></div></div>
+          <div class="card-bottom"><span class="hint">${sample?.width ? `${sample.width} × ${sample.height}<br>${bytesText(sample.output_bytes)}` : "原图 / 不裁剪"}</span><button class="small" data-action="rate" data-sample="${sample?.id || ""}" ${url && sample.status === "success" && editingReviewReady() ? "" : "disabled"}>${!editingReviewReady() ? "先跑通所有模型" : S.job?.operation === "edit" ? "分项评价" : rating === null ? "评价画质" : "编辑评分"}</button></div>
           ${sample?.warnings?.length && !S.blind ? `<p class="card-warning">${esc(sample.warnings.join(" "))}</p>` : ""}</div></article>`;
       }).join("");
       $("result-grid").querySelectorAll("img").forEach(img => img.addEventListener("error", () => {
@@ -666,18 +909,71 @@
       const stats = job.summary.filter(row => ids.has(row.model_id)), valid = stats.filter(row => Number.isFinite(row.mean_ms));
       const max = valid.length ? Math.max(...valid.map(row => row.mean_ms)) : 1, min = valid.length ? Math.min(...valid.map(row => row.mean_ms)) : null;
       $("speed-chart").innerHTML = stats.map(row => `<div class="speed-row"><span>${esc(modelLabel(row.model_id))}</span><div class="bar-track">${Number.isFinite(row.mean_ms) ? `<div class="bar-fill ${row.mean_ms === min ? "best" : ""}" style="width:${max > 0 ? Math.max(1,row.mean_ms/max*100) : 1}%"></div>` : ""}</div><span class="speed-value mono">${seconds(row.mean_ms)} s</span><span class="hint run-count">${row.successes} 张成功</span></div>`).join("");
-      $("summary-table").innerHTML = `<table><thead><tr><th>模型</th><th>均值</th><th>P50</th><th>P95</th><th>成功 / 总数</th><th>人工均分</th></tr></thead><tbody>${stats.map(row => `<tr><td>${esc(modelLabel(row.model_id))}</td><td>${seconds(row.mean_ms)} s</td><td>${seconds(row.median_ms)} s</td><td>${seconds(row.p95_ms)} s</td><td>${row.successes} / ${job.samples.filter(sample => sample.model_id === row.model_id).length}${row.failures ? ` · ${row.failures} 失败` : ""}</td><td>${Number.isFinite(row.rating_mean) ? row.rating_mean.toFixed(2) + " / 5" : "尚未评分"} <span class="hint">(${row.rated_count} 张)</span></td></tr>`).join("")}</tbody></table>`;
+      const editing = job.operation === "edit";
+      const ratingColumns = editing ? currentCriteria().map(([,label]) => `<th>${label}</th>`).join("") : "<th>人工均分</th>";
+      $("summary-table").innerHTML = `<table><thead><tr><th>模型</th><th>均值</th><th>P50</th><th>P95</th><th>成功 / 总数</th>${ratingColumns}</tr></thead><tbody>${stats.map(row => `<tr><td>${esc(modelLabel(row.model_id))}</td><td>${seconds(row.mean_ms)} s</td><td>${seconds(row.median_ms)} s</td><td>${seconds(row.p95_ms)} s</td><td>${row.successes} / ${job.samples.filter(sample => sample.model_id === row.model_id).length}${row.failures ? ` · ${row.failures} 失败` : ""}</td>${editing ? currentCriteria().map(([key]) => {const dimension = row.rating_dimensions?.[key]; return `<td>${Number.isFinite(dimension?.mean) ? dimension.mean.toFixed(2) + " / 5" : "未评 / N/A"} <span class="hint">(${dimension?.count || 0} 张)</span></td>`;}).join("") : `<td>${Number.isFinite(row.rating_mean) ? row.rating_mean.toFixed(2) + " / 5" : "尚未评分"} <span class="hint">(${row.rated_count} 张)</span></td>`}</tr>`).join("")}</tbody></table>`;
       $("method-note").textContent = (job.source === "legacy" ? "旧脚本计时不含解码和保存，不能直接与新实验的端到端耗时混比。 " : "端到端耗时包含网络、图片传输、解码与原图保存，不含英文准备、鉴权、排队和归档副本写入；并非纯模型推理时间。 ") + "不同语言版本不是严格相同字符串的对比。均值 / P50 / P95 只使用当前实验的成功样本。" + (stats.some(row => row.successes < 5) ? " 样本不足 5 张，尤其 P95 仅作描述性参考，不能据此推断稳定排名。" : "") + " 人工均分只包含已评图片的已评项目。";
+      if (editing) $("method-note").textContent = "编辑耗时包含请求编码、参考图传输至模型、结果下载与原图保存，不含本地输入规范化、鉴权、英文准备和归档。只统计本轮成功请求；少量样本不能支持稳定排名。人工评价按维度分开报告，无整体质量分数；缺少保留区 mask 时，不拿全图相似度冒充编辑保真度。";
       $("all-rounds").hidden = false;
-      $("sample-table").innerHTML = `<table><thead><tr><th>轮次</th><th>模型</th><th>提示词</th><th>状态</th><th>耗时</th><th>实际尺寸</th><th>评分</th></tr></thead><tbody>${samplesForView().map(sample => `<tr><td>${sample.round}</td><td>${esc(modelLabel(sample.model_id))}</td><td>${sample.prompt_variant?.includes("english") ? "英文版本" : "原文"}</td><td title="${esc(sample.error || "")}">${esc(statusNames[sample.status] || sample.status)}</td><td>${seconds(sample.elapsed_ms)} s</td><td>${sample.width ? `${sample.width} × ${sample.height}` : "—"}</td><td>${score(sample.rating)?.toFixed(1) || "—"}</td></tr>`).join("")}</tbody></table>`;
+      $("sample-table").innerHTML = `<table><thead><tr><th>轮次</th><th>模型</th><th>提示词</th><th>状态</th><th>耗时</th><th>实际尺寸</th><th>评分</th></tr></thead><tbody>${samplesForView().map(sample => `<tr><td>${sample.round}</td><td>${esc(modelLabel(sample.model_id))}</td><td>${sample.prompt_variant?.includes("english") ? "英文版本" : "原文"}</td><td title="${esc(sample.error || "")}">${esc(statusNames[sample.status] || sample.status)}</td><td>${seconds(sample.elapsed_ms)} s</td><td>${sample.width ? `${sample.width} × ${sample.height}` : "—"}</td><td>${editing ? score(sample.rating) === null ? "未评" : "已分项记录" : score(sample.rating)?.toFixed(1) || "—"}</td></tr>`).join("")}</tbody></table>`;
     }
     function tickClocks() {
       document.querySelectorAll("[data-clock]").forEach(element => { const since = Date.parse(element.dataset.clock); if (Number.isFinite(since)) element.textContent = Math.max(0,(Date.now()-since)/1000).toFixed(1); });
     }
     function renderHistory() {
-      const entries = S.history.filter(historyMatches);
-      $("history-title").textContent = "实验历史 · " + familyNames[S.family];
-      $("history-list").innerHTML = entries.length ? entries.map(job => `<button class="history-row ${job.id === S.job?.id ? "selected" : ""}" data-open="${esc(job.id)}"><span class="history-copy"><span class="history-meta">${esc(dateText(job.created_at))} · ${job.source === "legacy" ? "原有记录 / API 口径" : "新实验 / 端到端"}${job.topic ? " · " + esc(job.topic) : ""}</span><span class="history-prompt">${esc(job.prompt || "原提示词未记录")}</span><span class="history-meta">整轮 ${job.model_ids.length} 模型 · ${job.runs} 轮 · ${job.completed}/${job.total} 完成 · ${job.ratings_count} 张已评</span></span><span class="badge ${job.status === "completed" ? "success" : job.status === "failed" ? "danger" : ""}">${esc(statusNames[job.status] || job.status)}</span></button>`).join("") : `<p class="empty-note">还没有包含${esc(familyNames[S.family])}的实验。</p>`;
+      const entries = S.history.filter(item => historyMatches(item) && (!S.pinnedOnly || item.pinned)).sort((a,b) => Number(!!b.pinned)-Number(!!a.pinned));
+      $("history-title").textContent = operationNames[S.operation] + "历史 · " + familyNames[S.family];
+      $("history-list").innerHTML = entries.length ? entries.map(job => `<button class="history-row ${job.id === S.job?.id ? "selected" : ""}" data-open="${esc(job.id)}"><span class="history-copy"><span class="history-meta">${job.pinned ? "★ 置顶 · " : ""}${esc(dateText(job.created_at))} · ${job.source === "legacy" ? "原有记录 / API 口径" : "新实验 / 端到端"}${job.topic ? " · " + esc(job.topic) : ""}</span><span class="history-prompt">${esc(job.prompt || "原提示词未记录")}</span><span class="history-meta">整轮 ${job.model_ids.length} 模型 · ${job.runs} 轮 · ${job.completed}/${job.total} 完成 · ${job.ratings_count} 张已评${job.report_count ? " · " + job.report_count + " 份报告" : ""}</span></span><span class="badge ${job.status === "completed" ? "success" : job.status === "failed" ? "danger" : ""}">${esc(statusNames[job.status] || job.status)}</span></button>`).join("") : `<p class="empty-note">${S.pinnedOnly ? "该范围还没有置顶实验。" : "还没有包含" + esc(familyNames[S.family]) + "的实验。"}</p>`;
+      renderRecent();
+    }
+    function renderRecent() {
+      const entries = S.history.filter(item => historyMatches(item) && (!S.pinnedOnly || item.pinned)).sort((a,b) => Number(!!b.pinned)-Number(!!a.pinned));
+      $("saved-count").textContent = entries.length ? `(${entries.length})` : "";
+      $("pinned-only").setAttribute("aria-pressed", String(S.pinnedOnly)); $("pinned-only").classList.toggle("primary", S.pinnedOnly);
+      const signature = JSON.stringify([entries,S.job?.id,[...S.pinBusy],S.family,S.operation,S.pinnedOnly]);
+      if (signature === S.recentSignature) return;
+      S.recentSignature = signature;
+      $("recent-grid").innerHTML = entries.length ? entries.slice(0,4).map(job => {
+        const preview = S.family === "all" ? job.preview_image_url : job.preview_images?.[S.family];
+        const url = imageURL({image_url:preview}) || referenceURL({image_url:job.reference_image_url});
+        return `<article class="recent-card ${job.id === S.job?.id ? "current" : ""}"><button type="button" class="recent-open" data-recent-open="${job.id}">${url ? `<img src="${esc(url)}" alt="" loading="lazy">` : `<span class="recent-empty-thumb">${icon("image")}</span>`}<span class="recent-copy"><strong>${esc(job.topic || job.prompt || "未记录主题")}</strong><small>${esc(dateText(job.created_at))} · ${job.model_ids.length} 模型 · ${esc(statusNames[job.status] || job.status)}</small><small>${job.ratings_count} 张已评${job.report_count ? " · " + job.report_count + " 份报告" : ""}</small></span></button><button type="button" class="recent-pin" data-pin-job="${job.id}" aria-label="${job.pinned ? "取消置顶" : "置顶"} ${esc(job.topic || "实验")}" aria-pressed="${!!job.pinned}" ${S.pinBusy.has(job.id) ? "disabled" : ""}>${job.pinned ? "★" : "☆"}</button></article>`;
+      }).join("") : '<p class="hint">这里会保留本组的运行结果。已有其他组结果可通过上方按钮或“全部记录”查看。</p>';
+      $("recent-grid").querySelectorAll("img").forEach(image => image.addEventListener("error", () => {
+        const replacement = document.createElement("span"); replacement.className = "recent-empty-thumb"; replacement.textContent = "图缺失"; image.replaceWith(replacement);
+      }, {once:true}));
+    }
+    async function refreshSavedHistory() {
+      const boot = await api("/api/bootstrap");
+      S.history = boot.history; S.csrf = boot.csrf_token;
+      renderHistory();
+    }
+    async function setPinned(id, pinned) {
+      if (S.pinBusy.has(id)) return;
+      S.pinBusy.add(id); updateActions(); renderRecent();
+      let saved = false;
+      try {
+        const job = await api(`/api/jobs/${id}/pin`, {method:"PUT",body:JSON.stringify({pinned})});
+        saved = true;
+        if (S.job?.id === id) adoptJob(job);
+        const summary = S.history.find(item => item.id === id); if (summary) summary.pinned = job.pinned;
+        await refreshSavedHistory();
+        toast(pinned ? "已置顶，这条实验下次仍会保留。" : "已取消置顶，原始结果仍保留。");
+      } catch (err) { error((saved ? "置顶状态已保存，但历史列表刷新失败：" : "无法更新置顶状态：") + err.message); }
+      finally { S.pinBusy.delete(id); updateActions(); renderRecent(); }
+    }
+    function reportURL(value) {
+      return typeof value === "string" && /^\/api\/jobs\/(?:[0-9a-f]{32}|legacy-[0-9a-f]{16})\/reports\/[0-9a-f]{32}\.html$/.test(value) ? value : null;
+    }
+    function renderReportList() {
+      const entries = S.job?.id === S.reportTarget?.jobId ? (S.job.reports || []) : [];
+      $("report-list").innerHTML = entries.length ? '<strong class="hint">已保存的报告快照</strong>' + [...entries].reverse().slice(0,6).map(report => reportURL(report.download_url) ? `<a href="${report.download_url}">${esc(dateText(report.created_at))} · ${esc(familyNames[report.provider] || report.provider)} · ${report.include_images ? "含图" : "无图"} · ${bytesText(report.bytes)}</a>` : "").join("") : "";
+    }
+    function openReport() {
+      if (!S.job || active.has(S.job.status) || S.blind || !modelsForView().length) return;
+      S.reportTarget = {jobId:S.job.id,provider:S.family};
+      $("report-scope").textContent = `${S.job.topic || "当前实验"} · ${familyNames[S.family]} · ${modelsForView().length} 个模型`;
+      $("report-consent").checked = false; $("report-error").textContent = ""; $("report-status").textContent = "";
+      $("report-download").hidden = true; renderReportList(); $("report-dialog").showModal();
     }
     function openSettings(focusId) {
       if (!S.config) return;
@@ -701,40 +997,106 @@
     }
     function findSample(id) { return S.job?.samples.find(sample => sample.id === id); }
     function openRating(id) {
-      const sample = findSample(id); if (!sample || !imageURL(sample) || sample.status !== "success") return;
-      S.ratingTarget = {jobId:S.job.id,sampleId:id}; $("rating-name").textContent = modelLabel(sample.model_id) + " · 第 " + sample.round + " 轮";
+      const sample = findSample(id); if (!sample || !imageURL(sample) || sample.status !== "success" || !editingReviewReady()) return;
+      S.ratingTarget = {jobId:S.job.id,sampleId:id,fields:currentCriteria().map(([key]) => key)}; $("rating-name").textContent = modelLabel(sample.model_id) + " · 第 " + sample.round + " 轮";
       $("rating-thumb").src = imageURL(sample); $("rating-thumb").alt = modelLabel(sample.model_id) + " 的待评图像";
-      $("rating-fields").innerHTML = criteria.map(([key,label,description]) => `<div class="rating-row"><label for="rating-${key}">${label}<small>${description}</small></label><select id="rating-${key}" data-rating="${key}"><option value="">未评 / 不适用</option>${[1,2,3,4,5].map(value => `<option value="${value}" ${sample.rating?.[key] === value ? "selected" : ""}>${value} / 5</option>`).join("")}</select></div>`).join("");
+      $("rating-fields").innerHTML = currentCriteria().map(([key,label,description]) => `<div class="rating-row"><label for="rating-${key}">${label}<small>${description}</small></label><select id="rating-${key}" data-rating="${key}"><option value="">未评 / 不适用</option>${[1,2,3,4,5].map(value => `<option value="${value}" ${sample.rating?.[key] === value ? "selected" : ""}>${value} / 5</option>`).join("")}</select></div>`).join("");
       $("rating-notes").value = sample.rating?.notes || ""; $("rating-error").textContent = ""; $("rating-dialog").showModal();
     }
     function setZoom(value) {
       if (!S.zoomSample) return;
       const zoom = Math.max(10,Math.min(200,Math.round(value))); $("zoom-range").value = String(zoom); $("zoom-value").textContent = zoom + "%";
       $("zoom-image").style.width = S.zoomSample.width * zoom / 100 + "px"; $("zoom-image").style.height = S.zoomSample.height * zoom / 100 + "px";
+      if (S.zoomReference) {
+        $("zoom-source-image").style.width = S.zoomReference.width * zoom / 100 + "px";
+        $("zoom-source-image").style.height = S.zoomReference.height * zoom / 100 + "px";
+      }
     }
-    function fitZoom() { if (S.zoomSample) setZoom(Math.min(($("zoom-stage").clientWidth-24)/S.zoomSample.width,($("zoom-stage").clientHeight-24)/S.zoomSample.height)*100); }
+    function fitZoom() {
+      if (!S.zoomSample) return;
+      const paneWidth = $("zoom-stage").clientWidth / (S.zoomReference ? 2 : 1) - 32;
+      const width = Math.max(S.zoomSample.width, S.zoomReference?.width || 0);
+      const height = Math.max(S.zoomSample.height, S.zoomReference?.height || 0);
+      setZoom(Math.min(paneWidth/width,($("zoom-stage").clientHeight-24)/height)*100);
+    }
     function openZoom(id) {
-      const sample = findSample(id); if (!sample || !imageURL(sample)) return;
-      S.zoomSample = sample; const label = modelLabel(sample.model_id);
-      $("zoom-title").textContent = label + " · 第 " + sample.round + " 轮";
-      $("zoom-meta").textContent = `${sample.width} × ${sample.height} · ${bytesText(sample.output_bytes)}${S.blind ? " · 身份与耗时已隐藏" : " · " + seconds(sample.elapsed_ms) + " s"}`;
+      const isReference = id === "__reference__";
+      const sample = isReference ? S.job?.reference_image : findSample(id);
+      const url = isReference ? referenceURL(sample) : imageURL(sample);
+      if (!sample || !url) return;
+      S.zoomSample = sample; S.zoomReference = !isReference && S.job?.operation === "edit" ? S.job.reference_image : null;
+      const label = isReference ? "本轮参考原图" : modelLabel(sample.model_id);
+      $("zoom-title").textContent = label + (isReference ? "" : " · 第 " + sample.round + " 轮");
+      $("zoom-meta").textContent = `${sample.width} × ${sample.height} · ${bytesText(sample.output_bytes || sample.bytes)}${isReference ? " · 所有编辑模型收到同一份输入" : S.blind ? " · 身份与耗时已隐藏" : " · " + seconds(sample.elapsed_ms) + " s"}`;
       $("zoom-image").alt = label + " 的原始图像"; $("zoom-image").onload = fitZoom;
-      $("zoom-image").src = imageURL(sample); $("zoom-download").href = imageURL(sample);
-      $("zoom-download").download = `${S.blind ? "blind-image" : sample.model_id}-round-${sample.round}.${sample.filename?.endsWith(".jpg") ? "jpg" : "png"}`;
+      $("zoom-image").src = url; $("zoom-download").href = url;
+      $("zoom-download").download = isReference ? "reference.png" : `${S.blind ? "blind-image" : sample.model_id}-round-${sample.round}.${sample.filename?.endsWith(".jpg") ? "jpg" : "png"}`;
+      $("zoom-stage").classList.toggle("comparing", !!S.zoomReference);
+      $("zoom-source-pane").hidden = !S.zoomReference;
+      if (S.zoomReference) $("zoom-source-image").src = referenceURL(S.zoomReference); else $("zoom-source-image").removeAttribute("src");
       $("zoom-dialog").showModal(); requestAnimationFrame(fitZoom);
     }
-    $("prompt").value = presets.poster;
-    $("topic").value = topics.poster;
-    $("english-prompt").value = englishPresets.poster;
-    $("prompt-count").textContent = $("prompt").value.length + " / 4000";
+    const tooltip = $("info-popover");
+    const nativePopover = typeof tooltip.showPopover === "function";
+    let infoAnchor = null, infoPinned = false, infoTimer;
+    if (!nativePopover) tooltip.hidden = true;
+    function hideInfo() {
+      clearTimeout(infoTimer);
+      if (nativePopover && tooltip.matches(":popover-open")) tooltip.hidePopover();
+      if (!nativePopover) tooltip.hidden = true;
+      if (infoAnchor) { infoAnchor.removeAttribute("aria-describedby"); infoAnchor.setAttribute("aria-expanded","false"); }
+      infoAnchor = null; infoPinned = false;
+    }
+    function showInfo(button, pinned=false) {
+      const explanation = $(button.dataset.info);
+      if (!explanation?.textContent.trim()) return;
+      clearTimeout(infoTimer);
+      if (infoAnchor && infoAnchor !== button) hideInfo();
+      infoAnchor = button; infoPinned = pinned || infoPinned;
+      tooltip.textContent = explanation.textContent.trim();
+      button.setAttribute("aria-describedby", "info-popover"); button.setAttribute("aria-expanded", "true");
+      if (nativePopover) { if (!tooltip.matches(":popover-open")) tooltip.showPopover(); }
+      else { (button.closest("dialog") || document.body).append(tooltip); tooltip.hidden = false; }
+      const bounds = button.getBoundingClientRect(), tip = tooltip.getBoundingClientRect();
+      tooltip.style.left = Math.max(12, Math.min(bounds.left, innerWidth-tip.width-12)) + "px";
+      tooltip.style.top = Math.max(12, bounds.bottom+8+tip.height <= innerHeight-12 ? bounds.bottom+8 : bounds.top-tip.height-8) + "px";
+    }
+    function laterHideInfo() {
+      clearTimeout(infoTimer);
+      if (!infoPinned) infoTimer = setTimeout(() => {
+        if (!tooltip.matches(":hover") && document.activeElement !== infoAnchor) hideInfo();
+      }, 180);
+    }
+    document.addEventListener("pointerover", event => { const button = event.target.closest(".info-button"); if (button && !button.disabled) showInfo(button); });
+    document.addEventListener("pointerout", event => { if (event.target.closest(".info-button") === infoAnchor) laterHideInfo(); });
+    document.addEventListener("focusin", event => { const button = event.target.closest(".info-button"); if (button && !button.disabled) showInfo(button); });
+    document.addEventListener("focusout", event => { if (event.target === infoAnchor && !infoPinned) setTimeout(() => { if (document.activeElement !== infoAnchor) hideInfo(); },0); });
+    document.addEventListener("click", event => {
+      const button = event.target.closest(".info-button");
+      if (button) { event.preventDefault(); if (infoAnchor === button && infoPinned) hideInfo(); else showInfo(button,true); }
+      else if (infoAnchor && !tooltip.contains(event.target)) hideInfo();
+    });
+    document.addEventListener("keydown", event => { if (event.key === "Escape" && infoAnchor) { event.preventDefault(); event.stopImmediatePropagation(); hideInfo(); } }, true);
+    tooltip.addEventListener("pointerenter", () => clearTimeout(infoTimer));
+    tooltip.addEventListener("pointerleave", laterHideInfo);
+    window.addEventListener("resize", hideInfo);
+    setOperation(S.operation, false);
     $("prompt").addEventListener("input", () => { $("prompt-count").textContent = $("prompt").value.length + " / 4000"; $("english-prompt").value = ""; updateActions(); });
-    $("preset").addEventListener("change", () => { $("prompt").value = presets[$("preset").value]; $("topic").value = topics[$("preset").value]; $("prompt").dispatchEvent(new Event("input")); $("english-prompt").value = englishPresets[$("preset").value]; updateActions(); });
+    $("preset").addEventListener("change", () => { choosePreset($("preset").value); updateActions(); });
     $("english-prompt").addEventListener("input", updateActions);
     $("language-mode").addEventListener("change", updateActions);
     $("model-list").addEventListener("change", event => { const id = event.target.dataset.model; if (!id) return; if (event.target.checked) S.selected.add(id); else S.selected.delete(id); updateSize(); if (!S.job) render(); });
     $("runs").addEventListener("input", updateActions);
     ["size","quality","mode"].forEach(id => $(id).addEventListener("change", updateActions));
     $("family-bar").addEventListener("click", event => { const button = event.target.closest("[data-family]"); if (button && !button.disabled) setFamily(button.dataset.family); });
+    $("operation-bar").addEventListener("click", event => { const button = event.target.closest("[data-operation]"); if (button && !button.disabled) setOperation(button.dataset.operation); });
+    $("reference-file").addEventListener("change", event => uploadReference(event.target.files[0]));
+    $("reference-consent").addEventListener("change", updateActions);
+    ["reference-thumb","reference-result-image","zoom-source-image"].forEach(id => $(id).addEventListener("error", () => {
+      if ($(id).getAttribute("src")) error("参考原图无法读取。请检查私人结果目录；开始新实验前可重新上传原图。");
+    }));
+    $("clear-reference").addEventListener("click", () => { ++S.uploadToken; S.uploading = false; S.reference = null; $("reference-file").value = ""; $("reference-consent").checked = false; updateActions(); });
+    $("view-reference").addEventListener("click", () => openZoom("__reference__"));
     $("experiment-form").addEventListener("invalid", event => {
       let details = event.target.closest("details");
       while (details) { details.open = true; details = details.parentElement?.closest("details"); }
@@ -743,9 +1105,12 @@
     $("experiment-form").addEventListener("submit", async event => {
       event.preventDefault(); if (!event.currentTarget.reportValidity() || S.activeId || S.starting) return;
       const prompt = $("prompt").value.trim(); if (!prompt || !S.selected.size) { error("请填写提示词并选择至少一个已配置模型。"); return; }
+      if (S.operation === "edit" && (!S.reference || S.uploading || !$("reference-consent").checked)) { error("请先准备一张原图，并确认有权限将图像发送给选中的模型服务。"); return; }
       S.starting = true; updateActions(); $("error-banner").hidden = true;
       try {
-        const job = await api("/api/jobs",{method:"POST",body:JSON.stringify({prompt,topic:$("topic").value.trim(),english_prompt:$("english-prompt").value.trim(),language_mode:$("language-mode").value,model_ids:[...S.selected],size:$("size").value,gpt_quality:$("quality").value,runs:Number($("runs").value),mode:$("mode").value})});
+        const body = {prompt,operation:S.operation,topic:$("topic").value.trim(),english_prompt:$("english-prompt").value.trim(),language_mode:$("language-mode").value,model_ids:[...S.selected],size:$("size").value,gpt_quality:$("quality").value,runs:Number($("runs").value),mode:$("mode").value};
+        if (S.operation === "edit") Object.assign(body, {reference_image_id:S.reference.id,reference_consent:true});
+        const job = await api("/api/jobs",{method:"POST",body:JSON.stringify(body)});
         ++S.viewToken; S.activeId = job.id; adoptJob(job); schedulePoll(250); toast("实验已创建，结果会陆续出现在画布中。");
       } catch (err) { error("无法开始实验：" + err.message); }
       finally { S.starting = false; updateActions(); }
@@ -755,11 +1120,12 @@
       try { const job = await api(`/api/jobs/${S.activeId}/cancel`,{method:"POST",body:"{}"}); if (S.job?.id === job.id) adoptJob(job); toast("已请求停止后续调用；正在生成的请求会继续完成。"); }
       catch (err) { error("无法停止后续请求：" + err.message); updateActions(); }
     });
-    $("new-button").addEventListener("click", () => { ++S.viewToken; S.job = null; S.round = 1; S.order = []; S.signature = ""; render(); $("prompt").focus(); });
+    $("new-button").addEventListener("click", () => { ++S.viewToken; S.job = null; S.round = 1; S.order = []; S.signature = ""; render(); rememberView(); $("prompt").focus(); });
     $("reuse-button").addEventListener("click", () => {
       const job = S.job; if (!job) return; if (!job.prompt) { error("这份旧记录没有提示词，无法复用未知内容。"); return; }
       $("prompt").value = job.prompt; $("prompt").dispatchEvent(new Event("input"));
       $("topic").value = job.topic || "";
+      if (job.operation === "edit") { S.reference = job.reference_image; $("reference-consent").checked = false; }
       $("english-prompt").value = job.english_prompt || ""; $("language-mode").value = job.language_mode || "original_all";
       S.selected = new Set(job.model_ids.filter(id => availableModels().some(model => model.id === id && inFamily(model))));
       $("runs").value = String(Math.min(10,job.runs)); $("mode").value = job.mode;
@@ -768,10 +1134,44 @@
       updateActions(); toast("设置已复制到左侧；现有结果不变。点击开始对比才会发送新请求。");
     });
     $("blind-button").addEventListener("click", () => { S.blind = !S.blind; if (S.blind) S.order = shuffle(modelsForView().map(model => model.id)); S.signature = ""; render(); });
-    $("round").addEventListener("change", () => { S.round = Number($("round").value); render(); });
+    $("round").addEventListener("change", () => { S.round = Number($("round").value); render(); rememberView(); });
     $("result-grid").addEventListener("click", event => { const button = event.target.closest("[data-action]"); if (!button || button.disabled) return; if (button.dataset.action === "zoom") openZoom(button.dataset.sample); if (button.dataset.action === "rate") openRating(button.dataset.sample); if (button.dataset.action === "history") $("history-button").click(); });
     $("history-button").addEventListener("click", async () => { try { const boot = await api("/api/bootstrap"); S.history = boot.history; renderHistory(); $("history-dialog").showModal(); } catch (err) { error("无法读取历史：" + err.message); } });
     $("history-list").addEventListener("click", event => { const button = event.target.closest("[data-open]"); if (button) { $("history-dialog").close(); loadJob(button.dataset.open); } });
+    $("recent-grid").addEventListener("click", event => {
+      const pin = event.target.closest("[data-pin-job]");
+      if (pin) { const job = S.history.find(item => item.id === pin.dataset.pinJob); if (job) setPinned(job.id,!job.pinned); return; }
+      const button = event.target.closest("[data-recent-open]"); if (button) loadJob(button.dataset.recentOpen);
+    });
+    $("recent-more").addEventListener("click", () => $("history-button").click());
+    $("pinned-only").addEventListener("click", () => { S.pinnedOnly = !S.pinnedOnly; renderHistory(); });
+    $("pin-button").addEventListener("click", () => { if (S.job) setPinned(S.job.id,!S.job.pinned); });
+    $("report-button").addEventListener("click", openReport);
+    $("report-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!S.reportTarget || S.reportBusy || !event.currentTarget.reportValidity()) return;
+      const target = {...S.reportTarget};
+      S.reportBusy = true; $("export-report").disabled = true; updateActions();
+      $("report-error").textContent = ""; $("report-status").textContent = "正在整理报告，不会调用图像或评分模型…";
+      let savedReport = false;
+      try {
+        const report = await api(`/api/jobs/${target.jobId}/report`, {method:"POST",body:JSON.stringify({
+          provider:target.provider,include_images:$("report-images").checked,include_notes:$("report-notes").checked,share_acknowledged:$("report-consent").checked
+        })});
+        const url = reportURL(report.download_url);
+        if (!url) throw new Error("报告返回了无效的下载地址。");
+        savedReport = true;
+        $("report-download").href = url; $("report-download").hidden = false; $("report-download").click();
+        $("report-status").textContent = "报告快照已保存到本地。若未自动下载，可点击下方链接；以后也能再次下载。";
+        const job = await api(`/api/jobs/${target.jobId}`);
+        if (S.job?.id === target.jobId) adoptJob(job);
+        await refreshSavedHistory(); renderReportList();
+      } catch (err) {
+        $("report-error").textContent = (savedReport ? "报告已保存，可从下载链接获取；历史列表刷新失败：" : "报告导出未完成：") + err.message;
+        if (!savedReport) $("report-status").textContent = "";
+      }
+      finally { S.reportBusy = false; $("export-report").disabled = false; updateActions(); }
+    });
     $("return-active").addEventListener("click", () => { if (S.activeId) loadJob(S.activeId); });
     $("archive-copy").addEventListener("click", async () => {
       const path = archivePath(); if (!path) return;
@@ -812,15 +1212,21 @@
     $("rating-form").addEventListener("submit", async event => {
       event.preventDefault(); if (!S.ratingTarget || !event.currentTarget.reportValidity()) return;
       const target = {...S.ratingTarget}, rating = {notes:$("rating-notes").value};
-      for (const [key] of criteria) rating[key] = $("rating-"+key).value ? Number($("rating-"+key).value) : null;
+      for (const key of target.fields) rating[key] = $("rating-"+key).value ? Number($("rating-"+key).value) : null;
       $("save-rating").disabled = true; $("rating-error").textContent = "";
+      let savedRating = false;
       try {
         const job = await api(`/api/jobs/${target.jobId}/samples/${target.sampleId}/rating`,{method:"PUT",body:JSON.stringify(rating)});
+        savedRating = true;
         if (S.job?.id === target.jobId) adoptJob(job); $("rating-dialog").close(); toast("评分和笔记已保存到本地实验记录。");
-      } catch (err) { $("rating-error").textContent = err.message; }
+        await refreshSavedHistory();
+      } catch (err) {
+        if (savedRating) error("评分已保存，但历史列表刷新失败：" + err.message);
+        else $("rating-error").textContent = err.message;
+      }
       finally { $("save-rating").disabled = false; }
     });
-    $("clear-rating").addEventListener("click", () => { criteria.forEach(([key]) => $("rating-"+key).value = ""); $("rating-notes").value = ""; });
+    $("clear-rating").addEventListener("click", () => { $("rating-fields").querySelectorAll("[data-rating]").forEach(input => input.value = ""); $("rating-notes").value = ""; });
     $("zoom-range").addEventListener("input", event => setZoom(Number(event.target.value)));
     $("zoom-fit").addEventListener("click", fitZoom); $("zoom-actual").addEventListener("click", () => setZoom(100));
     document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => $(button.dataset.close).close()));

@@ -30,6 +30,7 @@ MODEL_PROVIDERS = {
     "flux-2-pro": "flux",
     "flux-2-flex": "flux",
     "gpt-image-2-5-sunburst": "gpt",
+    "mai-image-2-6": "mai",
 }
 LEGACY_MODEL_IDS = frozenset(("mai-image-2-5", "gpt-image-2", "gpt-image-2-5", "flux-1-kontext-pro"))
 GPT_SIZES = ("1024x1024", "1536x1024", "1024x1536")
@@ -189,8 +190,8 @@ class ModelConfig:
             or len(sizes) != len(set(sizes))
         ):
             raise ValidationError("supported_sizes must contain unique supported image sizes.")
-        if identifier in ("mai-image-2-5", "flux-1-kontext-pro") and sizes != ["1024x1024"]:
-            raise ValidationError("MAI Image 2.5 and FLUX.1 Kontext use the common 1024x1024 size (1 MP limit).")
+        if (provider == "mai" or identifier == "flux-1-kontext-pro") and sizes != ["1024x1024"]:
+            raise ValidationError("MAI Image 2.5/2.6 and FLUX.1 Kontext use the common 1024x1024 size (1 MP limit).")
         if provider == "gpt" and any(size not in GPT_SIZES for size in sizes):
             raise ValidationError("This GPT adapter supports the configured 1024/1536 image sizes.")
         enabled = raw.get("enabled")
@@ -276,6 +277,13 @@ class TranslationConfig:
 
 
 def new_model_slot(identifier: str) -> ModelConfig:
+    if identifier == "mai-image-2-6":
+        return ModelConfig(
+            id=identifier, name="MAI Image 2.6", provider="mai",
+            deployment="MAI-Image-2.6", endpoint="", auth_mode="azure_cli",
+            api_key_env="", api_key_header="api-key", version="",
+            supported_sizes=("1024x1024",), enabled=False,
+        )
     if identifier == "gpt-image-2-5-sunburst":
         return ModelConfig(
             id=identifier, name="GPT Image 2.5 Sunburst", provider="gpt",
@@ -430,7 +438,10 @@ def build_request(model: ModelConfig, prompt: str, size: str, quality: str) -> d
         raise ValidationError("Unsupported GPT quality.")
     width, height = (int(part) for part in size.split("x"))
     if model.provider == "mai":
-        return {"model": model.deployment, "prompt": prompt, "width": width, "height": height}
+        body = {"model": model.deployment, "prompt": prompt, "width": width, "height": height}
+        if model.id == "mai-image-2-6":
+            body.update(auto_aspect_ratio=False, web_grounding=False)
+        return body
     if model.provider == "flux" and "/providers/blackforestlabs/" in urllib.parse.urlsplit(model.endpoint).path:
         if model.id in ("flux-2-pro", "flux-2-flex"):
             body = {
@@ -450,6 +461,42 @@ def build_request(model: ModelConfig, prompt: str, size: str, quality: str) -> d
     if model.provider == "gpt":
         body.update(quality=quality, output_format="png")
     return body
+
+
+def edit_endpoint(model: ModelConfig) -> str:
+    parsed = urllib.parse.urlsplit(model.endpoint)
+    if model.provider == "flux" and parsed.path in FLUX_PATHS.values():
+        return model.endpoint
+    if not parsed.path.endswith("/images/generations"):
+        raise ValidationError(f"{model.name} has no supported image-editing route.")
+    return urllib.parse.urlunsplit(parsed._replace(path=parsed.path.removesuffix("/generations") + "/edits"))
+
+
+def build_edit_request(model: ModelConfig, prompt: str, size: str, quality: str) -> dict[str, Any]:
+    body = build_request(model, prompt, size, quality)
+    edit_endpoint(model)
+    if model.provider == "mai":
+        # The documented MAI edit contract takes model, prompt, and the uploaded image.
+        return {key: value for key, value in body.items() if key not in ("width", "height")}
+    return body
+
+
+def multipart_edit(body: dict[str, Any], reference: bytes) -> tuple[bytes, str]:
+    boundary = "ImageLab-" + uuid.uuid4().hex
+    chunks = []
+    for key, value in body.items():
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+            raise ValidationError("Invalid multipart field name.")
+        chunks.extend((
+            f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n'.encode("ascii"),
+            (json.dumps(value) if isinstance(value, bool) else str(value)).encode("utf-8"),
+            b"\r\n",
+        ))
+    chunks.extend((
+        f'--{boundary}\r\nContent-Disposition: form-data; name="image"; filename="reference.png"\r\nContent-Type: image/png\r\n\r\n'.encode("ascii"),
+        reference, f"\r\n--{boundary}--\r\n".encode("ascii"),
+    ))
+    return b"".join(chunks), f"multipart/form-data; boundary={boundary}"
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -562,12 +609,40 @@ class GeneratedImage:
 def generate(
     model: ModelConfig, body: dict[str, Any], headers: dict[str, str], timeout: int,
 ) -> GeneratedImage:
+    return _generate_or_edit(model, body, headers, timeout)
+
+
+def edit(
+    model: ModelConfig, body: dict[str, Any], headers: dict[str, str], timeout: int, reference: bytes,
+) -> GeneratedImage:
+    if not reference or not reference.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ProviderError("Editing requires a validated reference PNG; generation fallback is not allowed.")
+    return _generate_or_edit(model, body, headers, timeout, reference)
+
+
+def _generate_or_edit(
+    model: ModelConfig, body: dict[str, Any], headers: dict[str, str], timeout: int,
+    reference: bytes | None = None,
+) -> GeneratedImage:
     secret_values = tuple(headers.values())
     started = time.perf_counter()
     deadline = time.monotonic() + timeout
+    endpoint = model.endpoint
+    content_type = "application/json; charset=utf-8"
+    if reference is not None:
+        endpoint = edit_endpoint(model)
+        native_flux = model.provider == "flux" and urllib.parse.urlsplit(endpoint).path in FLUX_PATHS.values()
+        if native_flux:
+            payload = json.dumps(
+                {**body, "input_image": base64.b64encode(reference).decode("ascii")}, ensure_ascii=False,
+            ).encode("utf-8")
+        else:
+            payload, content_type = multipart_edit(body, reference)
+    else:
+        payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
     request = urllib.request.Request(
-        model.endpoint, data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json; charset=utf-8", **headers},
+        endpoint, data=payload,
+        headers={"Content-Type": content_type, **headers},
         method="POST",
     )
     try:

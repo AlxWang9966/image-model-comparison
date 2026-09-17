@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .providers import MAX_IMAGE_BYTES
-from .store import JOB_ID, RATING_FIELDS, write_bytes_atomic, write_json_atomic
+from .store import JOB_ID, rating_fields, review_ready, write_bytes_atomic, write_json_atomic
 
 
 class ArchiveError(ValueError):
@@ -81,6 +81,8 @@ class ImageArchive:
         topic = prompt_topic(job.get("prompt", ""), job.get("topic", ""))
         digest = hashlib.sha256(topic.encode("utf-8")).hexdigest()[:6]
         topic_folder = f"{component(topic, 26)}-{digest}"
+        if job.get("operation") == "edit":
+            topic_folder = "edit-" + topic_folder
         try:
             created = datetime.fromisoformat(job["created_at"].replace("Z", "+00:00"))
         except (ValueError, TypeError) as exc:
@@ -98,6 +100,28 @@ class ImageArchive:
         samples = []
         available = 0
         missing = 0
+        reference = None
+        if job.get("operation") == "edit":
+            original = job.get("reference_image")
+            if not isinstance(original, dict) or original.get("filename") != "reference.png":
+                raise ArchiveError("Editing reference metadata is missing.")
+            source = (self.source / job["id"] / "reference.png").resolve()
+            if not source.is_relative_to(self.source) or not source.is_file():
+                raise ArchiveError("The editing source image is missing; no replacement was used.")
+            if source.stat().st_size != original.get("bytes") or source.stat().st_size > 8 * 1024 * 1024:
+                raise ArchiveError("The editing source image size no longer matches its recorded value.")
+            content = source.read_bytes()
+            if hashlib.sha256(content).hexdigest() != original["sha256"]:
+                raise ArchiveError("The editing source image was modified.")
+            target = folder / "reference.png"
+            if target.is_file() and hashlib.sha256(target.read_bytes()).hexdigest() != original["sha256"]:
+                raise ArchiveError("The archived reference was edited; move that copy before regenerating the archive.")
+            if not target.is_file():
+                write_bytes_atomic(target, content)
+            reference = {
+                "file": "reference.png",
+                **{key: original.get(key) for key in ("sha256", "width", "height", "bytes", "normalization", "normalization_version")},
+            }
         for sample in job["samples"]:
             model = models[sample["model_id"]]
             if not re.fullmatch(r"[a-z0-9][a-z0-9.-]{0,79}", model["id"]):
@@ -144,6 +168,9 @@ class ImageArchive:
             review = sample.get("rating") if include_reviews else None
             record = {
                 "experiment_id": job["id"],
+                "operation": job.get("operation", "generate"),
+                "reference_image": reference,
+                "review_ready": review_ready(job),
                 "topic": topic,
                 "prompt": sample.get("effective_prompt", request.get("prompt")) or None,
                 "original_prompt": job.get("prompt") or None,
@@ -162,6 +189,7 @@ class ImageArchive:
                     key: request[key] for key in (
                         "size", "width", "height", "n", "num_images", "quality", "output_format",
                         "aspect_ratio", "steps", "guidance",
+                        "auto_aspect_ratio", "web_grounding",
                     ) if key in request
                 },
                 "timing": {
@@ -184,7 +212,7 @@ class ImageArchive:
                     if image_status == "not_generated" else None
                 ),
                 "human_review": {
-                    **{key: review.get(key) for key in RATING_FIELDS},
+                    **{key: review.get(key) for key in rating_fields(job)},
                     "notes": review.get("notes", ""),
                 } if review else None,
                 "reviews_included": include_reviews,
@@ -195,6 +223,10 @@ class ImageArchive:
         manifest = {
             "schema_version": 1,
             "experiment_id": job["id"],
+            "operation": job.get("operation", "generate"),
+            "reference_image": reference,
+            "review_ready": review_ready(job),
+            "review_protocol": "editing-dimensions-v1" if reference else "generation-human-v1",
             "topic": topic,
             "prompt": job.get("prompt") or None,
             "english_prompt": job.get("english_prompt") or None,
@@ -224,14 +256,24 @@ class ImageArchive:
             "# " + markdown_text(topic), "",
             "| Field | Value |", "| --- | --- |",
             f"| Experiment | `{job['id']}` |",
+            f"| Operation | {job.get('operation', 'generate')} |",
             f"| Created | {markdown_text(job['created_at'])} |",
             f"| Source / status | {markdown_text(job['source'])} / {markdown_text(job['status'])} |",
             f"| Requested size | {markdown_text(job['size'])} |",
             f"| Execution | {markdown_text(job['mode'])}, {job['runs']} round(s) |",
             f"| Timing scope | `{job['timing_scope']}` |",
             f"| Images retained | {available} / {len(samples)} samples |", "",
-            "## Full prompt", "",
         ]
+        if reference:
+            rows += [
+                "## Editing reference", "", "[Shared normalized source](reference.png)", "",
+                f"SHA-256: `{reference['sha256']}`", "",
+                f"Input: {reference['width']} x {reference['height']}; {reference['normalization']}", "",
+                "All models received these exact input bytes. Inputs and customer content remain private unless reviewed for sharing.",
+                "Editing ratings remain locked until every participating model/round completes successfully. "
+                "Scores describe separate human-review dimensions, not an automated or certified composite quality score.", "",
+            ]
+        rows += ["## Full prompt", ""]
         rows.extend("    " + line for line in (job.get("prompt") or "[Not recorded in the original benchmark]").splitlines())
         if job.get("english_prompt"):
             rows.extend(["", "## English counterpart", ""])
@@ -259,6 +301,7 @@ class ImageArchive:
             "- Per-image notes preserve original and effective prompts. Different language variants are not identical-prompt comparisons.",
             "- Legacy API-response timing excludes decoding/saving. Do not pool the two timing scopes.",
             "- A small sample is a demonstration, not a reliable quality/speed ranking.",
+            "- API completion does not establish edit correctness. Review the source, edit instruction, and output together.",
             "- Missing legacy images and failed calls remain explicit; no synthetic replacement is created.",
             "- JSON notes contain the full prompt, model, topic, parameters, timing, and any included human review.",
             "- Connection endpoints, deployment aliases, subscription IDs, credentials, full errors, and absolute source paths are not included.",
@@ -273,5 +316,6 @@ class ImageArchive:
             "image_count": available,
             "sample_count": len(samples),
             "missing_images": missing,
+            "reference_images": 1 if reference else 0,
             "error": None,
         }

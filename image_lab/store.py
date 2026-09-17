@@ -23,7 +23,9 @@ LOG = logging.getLogger("image_lab")
 TERMINAL = {"success", "failed", "cancelled", "interrupted"}
 ACTIVE_JOBS = {"queued", "preparing", "running"}
 RATING_FIELDS = ("adherence", "visual", "composition", "text")
+EDIT_RATING_FIELDS = ("adherence", "visual", "preservation", "text")
 JOB_ID = re.compile(r"(?:[0-9a-f]{32}|legacy-[0-9a-f]{16})")
+MAX_REPORT_BYTES = 64 * 1024 * 1024
 
 
 def now_iso() -> str:
@@ -49,18 +51,32 @@ def write_json_atomic(path: Path, data: Any) -> None:
     write_bytes_atomic(path, content)
 
 
-def score(rating: Any) -> float | None:
+def rating_fields(job: dict[str, Any]) -> tuple[str, ...]:
+    return EDIT_RATING_FIELDS if job.get("operation", "generate") == "edit" else RATING_FIELDS
+
+
+def review_ready(job: dict[str, Any]) -> bool:
+    if job.get("operation", "generate") != "edit":
+        return True
+    return bool(
+        job["status"] == "completed" and job["samples"]
+        and all(sample["status"] == "success" and sample.get("filename") for sample in job["samples"])
+        and {sample["model_id"] for sample in job["samples"]} == set(job["model_ids"])
+    )
+
+
+def score(rating: Any, fields: tuple[str, ...] = RATING_FIELDS) -> float | None:
     if not isinstance(rating, dict):
         return None
-    values = [rating.get(field) for field in RATING_FIELDS if type(rating.get(field)) is int]
+    values = [rating.get(field) for field in fields if type(rating.get(field)) is int]
     return statistics.mean(values) if values else None
 
 
-def validate_rating(raw: Any) -> dict[str, Any]:
-    if not isinstance(raw, dict) or set(raw) - {*RATING_FIELDS, "notes"}:
-        raise ValidationError("A rating must contain only the four criteria and notes.")
+def validate_rating(raw: Any, fields: tuple[str, ...] = RATING_FIELDS) -> dict[str, Any]:
+    if not isinstance(raw, dict) or set(raw) - {*fields, "notes"}:
+        raise ValidationError("A rating must contain only the criteria for this task and notes.")
     result: dict[str, Any] = {}
-    for field in RATING_FIELDS:
+    for field in fields:
         value = raw.get(field)
         if value is not None and (type(value) is not int or not 1 <= value <= 5):
             raise ValidationError(f"{field} must be an integer from 1 to 5, or null.")
@@ -75,6 +91,11 @@ def validate_rating(raw: Any) -> dict[str, Any]:
 def summarize(job: dict[str, Any]) -> dict[str, Any]:
     result = copy.deepcopy(job)
     samples = result["samples"]
+    result["operation"] = job.get("operation", "generate")
+    result["pinned"] = job.get("pinned", False)
+    result["reports"] = copy.deepcopy(job.get("reports", []))
+    result["review_ready"] = review_ready(job)
+    fields = rating_fields(job)
     result["progress"] = {
         "done": sum(sample["status"] in TERMINAL for sample in samples),
         "total": len(samples),
@@ -89,7 +110,16 @@ def summarize(job: dict[str, Any]) -> dict[str, Any]:
             and not isinstance(row["elapsed_ms"], bool)
             and math.isfinite(row["elapsed_ms"]) and row["elapsed_ms"] >= 0
         )
-        scores = [value for row in successful if (value := score(row.get("rating"))) is not None]
+        scores = [value for row in successful if (value := score(row.get("rating"), fields)) is not None]
+        dimensions = {}
+        for field in fields:
+            values = [
+                row["rating"][field] for row in successful
+                if isinstance(row.get("rating"), dict) and type(row["rating"].get(field)) is int
+            ]
+            dimensions[field] = {
+                "mean": round(statistics.mean(values), 3) if values else None, "count": len(values),
+            }
         result["summary"].append({
             "model_id": model_id,
             "attempted": sum(bool(row.get("started_at")) or job["source"] == "legacy" for row in rows),
@@ -101,8 +131,9 @@ def summarize(job: dict[str, Any]) -> dict[str, Any]:
             "p95_ms": timings[max(0, math.ceil(len(timings) * 0.95) - 1)] if timings else None,
             "min_ms": timings[0] if timings else None,
             "max_ms": timings[-1] if timings else None,
-            "rating_mean": round(statistics.mean(scores), 3) if scores else None,
+            "rating_mean": round(statistics.mean(scores), 3) if scores and result["operation"] != "edit" else None,
             "rated_count": len(scores),
+            "rating_dimensions": dimensions,
         })
     return result
 
@@ -123,7 +154,9 @@ def filter_job(job: dict[str, Any], provider: str) -> dict[str, Any]:
     result["view_filter"] = provider
     result["unfiltered_model_count"] = len(job["model_ids"])
     result["view_note"] = "Model/sample statistics are filtered; experiment-level metadata and the archive refer to the original complete run."
-    return summarize(result)
+    filtered = summarize(result)
+    filtered["review_ready"] = review_ready(job)
+    return filtered
 
 
 def empty_sample(model_id: str, round_number: int, request: dict[str, Any]) -> dict[str, Any]:
@@ -212,6 +245,32 @@ class RunStore:
             raise ValidationError("Incomplete saved run.")
         if "topic" in job and (not isinstance(job["topic"], str) or len(job["topic"]) > 80):
             raise ValidationError("Invalid saved prompt topic.")
+        if "pinned" in job and type(job["pinned"]) is not bool:
+            raise ValidationError("Invalid saved pin state.")
+        if "reports" in job and (
+            not isinstance(job["reports"], list)
+            or any(
+                not isinstance(report, dict)
+                or not isinstance(report.get("id"), str) or not re.fullmatch(r"[0-9a-f]{32}", report["id"])
+                or type(report.get("bytes")) is not int or not 0 < report["bytes"] <= MAX_REPORT_BYTES
+                or not isinstance(report.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", report["sha256"])
+                or report.get("provider") not in ("all", "gpt", "flux", "mai")
+                or type(report.get("include_images")) is not bool or type(report.get("include_notes")) is not bool
+                or not isinstance(report.get("created_at"), str)
+                for report in job["reports"]
+            )
+        ):
+            raise ValidationError("Invalid saved report records.")
+        if job.get("operation", "generate") not in ("generate", "edit"):
+            raise ValidationError("Unknown saved operation.")
+        if job.get("operation") == "edit":
+            reference = job.get("reference_image")
+            if (
+                not isinstance(reference, dict) or reference.get("filename") != "reference.png"
+                or not isinstance(reference.get("sha256"), str)
+                or not re.fullmatch(r"[0-9a-f]{64}", reference["sha256"])
+            ):
+                raise ValidationError("The editing experiment has no valid source-image provenance.")
         for sample in job["samples"]:
             if (
                 not isinstance(sample, dict) or not isinstance(sample.get("id"), str)
@@ -223,7 +282,7 @@ class RunStore:
             ):
                 raise ValidationError("Invalid saved sample.")
             if sample.get("rating") is not None:
-                validate_rating(sample["rating"])
+                validate_rating(sample["rating"], rating_fields(job))
 
     def warn(self, message: str) -> None:
         self.warnings.append(message)
@@ -285,9 +344,11 @@ class RunStore:
             self.jobs[identifier] = job
 
     def rate(self, identifier: str, sample_id: str, raw: Any) -> dict[str, Any]:
-        rating = validate_rating(raw)
         with self.lock:
             job = self.get(identifier)
+            if not review_ready(job):
+                raise ValidationError("Finish all editing models/rounds successfully before scoring this experiment.")
+            rating = validate_rating(raw, rating_fields(job))
             sample = next((row for row in job["samples"] if row["id"] == sample_id), None)
             if sample is None:
                 raise KeyError("Sample not found.")
@@ -295,10 +356,69 @@ class RunStore:
                 raise ValidationError("Only successful samples with a saved image can be rated.")
             return self.update_sample(identifier, sample_id, rating=rating)
 
+    def pin(self, identifier: str, pinned: bool) -> dict[str, Any]:
+        if type(pinned) is not bool:
+            raise ValidationError("pinned must be a boolean.")
+        with self.lock:
+            self.get(identifier)
+            return self.update_job(identifier, pinned=pinned)
+
+    def save_report(
+        self, identifier: str, content: bytes, *, provider: str, include_images: bool,
+        include_notes: bool, source_updated_at: str,
+    ) -> dict[str, Any]:
+        if not 0 < len(content) <= MAX_REPORT_BYTES:
+            raise ValidationError("The report exceeds the local 64 MiB file limit; export without embedded images.")
+        report_id = uuid.uuid4().hex
+        entry = {
+            "id": report_id, "created_at": now_iso(), "provider": provider,
+            "include_images": include_images, "include_notes": include_notes,
+            "bytes": len(content), "sha256": hashlib.sha256(content).hexdigest(),
+            "source_updated_at": source_updated_at,
+            "download_url": f"/api/jobs/{identifier}/reports/{report_id}.html",
+        }
+        with self.lock:
+            job = self.get(identifier)
+            path = self.output / identifier / "reports" / f"{report_id}.html"
+            write_bytes_atomic(path, content)
+            try:
+                self.update_job(identifier, reports=[*job.get("reports", []), entry])
+            except OSError:
+                path.unlink(missing_ok=True)
+                raise
+        return entry
+
+    def report_content(self, identifier: str, report_id: str) -> bytes:
+        job = self.get(identifier)
+        if not re.fullmatch(r"[0-9a-f]{32}", report_id):
+            raise KeyError("Report not found.")
+        report = next((entry for entry in job.get("reports", []) if entry["id"] == report_id), None)
+        if report is None:
+            raise KeyError("Report not found in this experiment.")
+        directory = (self.output / identifier / "reports").resolve()
+        path = (directory / f"{report_id}.html").resolve()
+        if path.parent != directory or not path.is_file():
+            raise KeyError("The saved report file is missing.")
+        if path.stat().st_size != report["bytes"] or not 0 < path.stat().st_size <= MAX_REPORT_BYTES:
+            raise ValidationError("The saved report was modified. Export a new snapshot.")
+        content = path.read_bytes()
+        if hashlib.sha256(content).hexdigest() != report["sha256"]:
+            raise ValidationError("The saved report checksum no longer matches.")
+        return content
+
     def history(self) -> list[dict[str, Any]]:
         with self.lock:
             result = []
             for job in sorted(self.jobs.values(), key=lambda item: item["created_at"], reverse=True):
+                previews = {}
+                for model in job["models"]:
+                    image_url = next(
+                        (sample["image_url"] for sample in job["samples"]
+                         if sample["model_id"] == model["id"] and sample["status"] == "success" and sample.get("image_url")),
+                        None,
+                    )
+                    if image_url:
+                        previews.setdefault(model["provider"], image_url)
                 result.append({
                     key: job[key] for key in (
                         "id", "created_at", "prompt", "mode", "runs", "size", "gpt_quality",
@@ -306,25 +426,48 @@ class RunStore:
                     )
                 })
                 result[-1].update(
+                    operation=job.get("operation", "generate"),
                     topic=job.get("topic", ""),
                     providers=sorted({model["provider"] for model in job["models"]}),
                     completed=sum(row["status"] in TERMINAL for row in job["samples"]),
                     total=len(job["samples"]),
-                    ratings_count=sum(score(row.get("rating")) is not None for row in job["samples"]),
+                    ratings_count=sum(score(row.get("rating"), rating_fields(job)) is not None for row in job["samples"]),
+                    pinned=job.get("pinned", False),
+                    report_count=len(job.get("reports", [])),
+                    preview_image_url=next(
+                        (sample["image_url"] for sample in job["samples"] if sample["status"] == "success" and sample.get("image_url")),
+                        job.get("reference_image", {}).get("image_url"),
+                    ),
+                    preview_images=previews,
+                    reference_image_url=job.get("reference_image", {}).get("image_url"),
                 )
             return result
 
     def image_path(self, identifier: str, filename: str) -> Path:
         job = self.get(identifier)
-        if not re.fullmatch(r"[0-9a-f]{16}\.(?:png|jpg)", filename):
+        reference = filename == "reference.png" and job.get("operation") == "edit" and job.get("reference_image")
+        if not reference and not re.fullmatch(r"[0-9a-f]{16}\.(?:png|jpg)", filename):
             raise KeyError("Image not found.")
-        if not any(sample.get("filename") == filename for sample in job["samples"]):
+        if not reference and not any(sample.get("filename") == filename for sample in job["samples"]):
             raise KeyError("Image is not part of this experiment.")
         directory = (self.output / identifier).resolve()
         path = (directory / filename).resolve()
         if path.parent != directory or not path.is_file():
             raise KeyError("Image file is missing.")
         return path
+
+    def reference_bytes(self, identifier: str) -> bytes:
+        job = self.get(identifier)
+        metadata = job.get("reference_image")
+        if not metadata:
+            raise ValidationError("This experiment has no editing reference.")
+        path = self.image_path(identifier, "reference.png")
+        if path.stat().st_size != metadata.get("bytes") or path.stat().st_size > 8 * 1024 * 1024:
+            raise ValidationError("The experiment reference size no longer matches its metadata.")
+        content = path.read_bytes()
+        if hashlib.sha256(content).hexdigest() != metadata["sha256"]:
+            raise ValidationError("The experiment reference was modified; no editing request was sent.")
+        return content
 
     def import_legacy(self, root: Path, config: AppConfig) -> None:
         directories = [root] + [

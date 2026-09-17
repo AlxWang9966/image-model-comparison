@@ -25,6 +25,7 @@ from test_image_lab import config_data, generated_image, parameters
 
 GPT_IDS = ["gpt-image-2", "gpt-image-2-5", "gpt-image-2-5-sunburst"]
 FLUX_IDS = ["flux-1-kontext-pro", "flux-2-pro", "flux-2-flex"]
+MAI_IDS = ["mai-image-2-5", "mai-image-2-6"]
 
 
 def run(channel: str) -> None:
@@ -52,9 +53,11 @@ def run(channel: str) -> None:
 
         gpt_job = generate_history(GPT_IDS)
         all_ids = [model["id"] for model in config["models"]]
+        model_count = len(all_ids)
         mixed_job = generate_history(all_ids)
         timings = {
             "mai-image-2-5": 100,
+            "mai-image-2-6": 90,
             "gpt-image-2": 300,
             "gpt-image-2-5": 200,
             "gpt-image-2-5-sunburst": 250,
@@ -85,8 +88,8 @@ def run(channel: str) -> None:
                         });
                     """)
                     page.goto(base, wait_until="networkidle")
-                    expect(page.locator("#ready-count")).to_have_text("7 / 7")
-                    expect(page.locator(".result-card")).to_have_count(7)
+                    expect(page.locator("#ready-count")).to_have_text(f"{model_count} / {model_count}")
+                    expect(page.locator(".result-card")).to_have_count(model_count)
                     assert page.locator("#advanced-options").get_attribute("open") is None
                     expect(page.locator("#runs")).to_be_hidden()
                     expect(page.locator("#error-banner")).to_be_hidden()
@@ -105,7 +108,7 @@ def run(channel: str) -> None:
                     expect(page.locator(".result-card")).to_have_count(3)
                     expect(page.locator("#summary-table tbody tr")).to_have_count(3)
                     expect(page.locator(".result-card.fastest h3")).to_have_text("GPT Image 2.5 Flare")
-                    expect(page.locator("#family-context")).to_contain_text("3 / 7")
+                    expect(page.locator("#family-context")).to_contain_text(f"3 / {model_count}")
                     for image in page.locator(".image-button img").all():
                         expect(image).to_have_js_property("naturalWidth", 2)
 
@@ -114,7 +117,7 @@ def run(channel: str) -> None:
                     exported_csv = page.request.get(base + page.locator("#csv-export").get_attribute("href"))
                     csv_rows = list(csv.DictReader(io.StringIO(exported_csv.body().decode("utf-8-sig"))))
                     assert [row["model_id"] for row in csv_rows] == GPT_IDS
-                    assert len(app.store.get(mixed_job["id"])["samples"]) == 7
+                    assert len(app.store.get(mixed_job["id"])["samples"]) == model_count
 
                     page.locator("#archive-copy").click()
                     expect(page.locator("#toast")).to_contain_text("已复制")
@@ -160,8 +163,13 @@ def run(channel: str) -> None:
                     expect(page.locator(".result-card")).to_have_count(3)
                     expect(page.locator(".result-card.fastest h3")).to_have_text("FLUX.1 Kontext Pro")
                     select_family("mai")
-                    expect(page.locator(".result-card")).to_have_count(1)
-                    expect(page.locator("#result-grid")).to_have_class("result-grid single")
+                    assert selected_ids() == MAI_IDS
+                    expect(page.locator(".result-card")).to_have_count(2)
+                    expect(page.locator(".result-card.fastest h3")).to_have_text("MAI Image 2.6")
+                    expect(page.locator("#summary-table tbody tr")).to_have_count(2)
+                    mai_export = page.request.get(base + page.locator("#json-export").get_attribute("href"))
+                    assert mai_export.ok and mai_export.json()["model_ids"] == MAI_IDS
+                    assert mai_export.json()["models"][1]["deployment"] == "MAI-Image-2.6"
 
                     select_family("gpt")
                     page.locator("#reuse-button").click()

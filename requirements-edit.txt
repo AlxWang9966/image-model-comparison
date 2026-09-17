@@ -1,0 +1,2 @@
+# Optional for text generation; required to validate and normalize editing inputs.
+Pillow>=11.3.0,<13

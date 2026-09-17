@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; connect-src 'none'">
+  <title>$title · Image Lab 测评报告</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.7 "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; background: var(--cp-bg); color: var(--cp-text); }
+    main { max-width: 1160px; margin: auto; padding: 32px 24px 64px; }
+    h1 { font-size: clamp(26px, 4vw, 40px); letter-spacing: -.04em; line-height: 1.2; margin: 12px 0; overflow-wrap: anywhere; }
+    h2 { font-size: 20px; margin: 0 0 16px; letter-spacing: -.02em; }
+    h3 { margin: 0 0 8px; font-size: 15px; }
+    p { margin: 8px 0; }
+    .eyebrow { color: var(--cp-accent); font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+    .muted { color: var(--cp-text-muted); font-size: 12px; }
+    .mono { font-family: Consolas, "Courier New", Courier, monospace; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
+    .toolbar strong { font-size: 18px; }
+    button { font: inherit; padding: 8px 14px; border: 1px solid var(--cp-border); border-radius: .625rem; color: var(--cp-text); background: var(--cp-surface); cursor: pointer; }
+    button:hover { border-color: var(--cp-accent); }
+    button:focus-visible { outline: 2px solid var(--cp-accent); outline-offset: 3px; }
+    .panel { padding: 24px; margin-top: 24px; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+    .stat { border: 1px solid var(--cp-border); border-radius: 10px; padding: 16px; background: var(--cp-bg-elevated); }
+    .stat strong { display: block; font-size: 28px; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: 12px; color: var(--cp-text-muted); }
+    .notice { padding: 12px 16px; border-left: 3px solid var(--cp-accent); background: var(--cp-accent-soft); border-radius: 8px; font-size: 12px; margin: 16px 0; }
+    .notice.warning { border-left-color: var(--cp-warning); background: var(--cp-bg-elevated); }
+    .prompt { white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--cp-border); border-radius: 10px; padding: 14px; background: var(--cp-bg-elevated); margin: 10px 0; font-size: 13px; }
+    .insight { display: block; border-bottom: 1px solid var(--cp-border); padding: 10px 0; }
+    .insight:last-child { border: 0; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { text-align: left; border-bottom: 1px solid var(--cp-border); padding: 10px 12px; vertical-align: top; }
+    th { font-weight: 600; color: var(--cp-text-muted); background: var(--cp-bg-elevated); }
+    td { font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: none; }
+    .bar-row { display: grid; grid-template-columns: minmax(110px, 220px) minmax(40px, 1fr) 85px; align-items: center; gap: 12px; margin: 14px 0; font-size: 13px; }
+    .track { height: 10px; border-radius: 5px; background: var(--cp-surface-soft); overflow: hidden; }
+    .fill { height: 100%; background: var(--cp-border-strong); border-radius: 5px; }
+    .fill.best { background: var(--cp-accent); }
+    .value { text-align: right; font-variant-numeric: tabular-nums; }
+    .score-value { font-weight: 700; font-size: 16px; }
+    .score-bar { height: 4px; margin-top: 7px; border-radius: 4px; background: var(--cp-surface-soft); min-width: 60px; overflow: hidden; }
+    .score-bar span { display: block; height: 100%; background: var(--cp-accent); }
+    .empty { color: var(--cp-text-muted); background: var(--cp-bg-elevated); }
+    .samples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .sample { border: 1px solid var(--cp-border); border-radius: 12px; padding: 16px; overflow-wrap: anywhere; }
+    .sample img { display: block; width: 100%; max-height: 420px; object-fit: contain; background: var(--cp-surface-soft); margin: 12px 0; border-radius: 8px; }
+    .image-placeholder { display: grid; place-items: center; min-height: 96px; border: 1px dashed var(--cp-border); padding: 16px; border-radius: 8px; color: var(--cp-text-muted); font-size: 12px; margin: 12px 0; }
+    .source { display: grid; grid-template-columns: 240px 1fr; align-items: center; gap: 20px; }
+    .source img { max-width: 240px; width: 100%; max-height: 260px; object-fit: contain; }
+    .note { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; padding: 10px; border-left: 2px solid var(--cp-border-strong); }
+    .caption { font-size: 11px; color: var(--cp-text-muted); }
+    footer { color: var(--cp-text-muted); font-size: 11px; margin-top: 32px; border-top: 1px solid var(--cp-border); padding-top: 16px; }
+    @media (max-width: 640px) { main { padding: 20px 16px; } .panel { padding: 16px; } .stats { grid-template-columns: repeat(2, 1fr); } .samples, .source { grid-template-columns: 1fr; } .bar-row { grid-template-columns: 110px minmax(24px, 1fr) 70px; gap: 8px; font-size: 11px; } th, td { padding: 8px; } }
+    @media print {
+      :root, html[data-theme="dark"] {
+        color-scheme: light;
+        --cp-bg: #ffffff; --cp-bg-elevated: #f5f5f5; --cp-surface: #ffffff; --cp-surface-soft: #f5f5f5;
+        --cp-text: #242424; --cp-text-muted: #5c5c5c; --cp-border: #dedede; --cp-border-strong: #919191;
+        --cp-accent: #b11f4b; --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      }
+      main { max-width: none; padding: 0; } .toolbar { display: none; } .panel { border-radius: 0; margin-top: 20px; padding: 16px 0; border-left: 0; border-right: 0; }
+      .table-wrap { overflow: visible; } table { font-size: 10px; } th, td { padding: 7px 5px; } tr, .sample, .stat, .source { break-inside: avoid; }
+      .sample img { max-height: 260px; } .samples { gap: 12px; } h2, h3 { break-after: avoid; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      @page { margin: 14mm; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <div class="toolbar"><strong>Image Lab · 测评报告</strong><div><button id="theme-button" type="button">明暗主题</button> <button id="print-button" type="button">打印 / 另存为 PDF</button></div></div>
+  <header><div class="eyebrow">EVALUATION REPORT · RECORDED EVIDENCE</div><h1>$title</h1><p>$subtitle</p><p class="muted">实验：<span class="mono">$experiment_id</span> · 报告时间：$report_time</p></header>
+  $content
+  <footer>Image Lab $version · 本报告是导出时的静态快照，不会随网页后续评分自动变化。没有自动图像评分、外部裁判调用或额外生图请求。连接配置与凭据未包含，但图像、提示词和人工备注仍需审查后分享。</footer>
+</main>
+<script>
+  document.getElementById("print-button").addEventListener("click", () => window.print());
+  document.getElementById("theme-button").addEventListener("click", () => {
+    document.documentElement.dataset.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  });
+</script>
+</body>
+</html>

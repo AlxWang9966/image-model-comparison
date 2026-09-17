@@ -6,6 +6,8 @@ v0.2 增加了 [FLUX 中英文指令配对示例](flux-language-check/README.md)
 
 v0.3 增加了 [GPT Image 2 / Flare / Sunburst 同轮对比](gpt-25-bookstore/README.md)，包含同一中文海报提示词下的三个原始输出与逐图备注。各批次保持独立，不与下方早期实验的计时合并。
 
+v0.4 提供 [MAI 2.5 / 2.6 编辑的离线测评报告示例](reports/README.md)，可直接下载并在浏览器离线查看图片、耗时图表和分项记录。本例没有人工评分，报告明确留空，不使用自动裁判或虚构分数。
+
 所有图片均为 AI 生成，按原始字节保留，未重新绘制或修饰。示例输入是通用的书店海报主题，不包含客户资料、个人身份信息或凭据。连接 endpoint、Azure 订阅 / 资源信息、部署别名及人工评语不在此分享包中，图片也已检查无嵌入元数据。
 
 完整记录在 [批次说明](chinese-bookstore-poster/README.md) 和 [manifest.json](chinese-bookstore-poster/manifest.json)。每张原图旁都有单独的 JSON 备注，包含模型名称、主题、完整提示词、参数、耗时、尺寸和 SHA-256。

@@ -111,6 +111,20 @@
       "supported_sizes": ["1024x1024", "1536x1024", "1024x1536"],
       "prompt_policy": "original",
       "enabled": false
+    },
+    {
+      "id": "mai-image-2-6",
+      "name": "MAI Image 2.6",
+      "provider": "mai",
+      "deployment": "MAI-Image-2.6",
+      "endpoint": "",
+      "auth_mode": "azure_cli",
+      "api_key_env": "",
+      "api_key_header": "api-key",
+      "version": "",
+      "supported_sizes": ["1024x1024"],
+      "prompt_policy": "original",
+      "enabled": false
     }
   ]
 }
